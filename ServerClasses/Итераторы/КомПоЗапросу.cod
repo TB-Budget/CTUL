@@ -1,0 +1,69 @@
+﻿--Com Turbo Utilities Library (c) Златовратский Павел(ТБ.Бюджет), 2020
+
+--Данный проект является свободным программным обеспечением. Вы вправе распространять его
+--и/или модифицировать в соответствии с условиями версии 2.1 либо по вашему выбору с условиями
+--более поздней версии Стандартной Общественной Лицензии Ограниченного Применения GNU,
+--опубликованной Free Software Foundation.
+
+--Мы распространяем этот проект в надежде на то, что он будет вам полезен, однако
+--НЕ ПРЕДОСТАВЛЯЕМ НА НЕГО НИКАКИХ ГАРАНТИЙ, в том числе ГАРАНТИИ ТОВАРНОГО СОСТОЯНИЯ ПРИ ПРОДАЖЕ
+--и ПРИГОДНОСТИ ДЛЯ ИСПОЛЬЗОВАНИЯ В КОНКРЕТНЫХ ЦЕЛЯХ. Для получения более подробной информации
+--ознакомьтесь со Стандартной Общественной Лицензией Ограниченного Применений GNU.
+
+--Вместе с данным проектом вы должны были получить экземпляр Стандартной Общественной Лицензии
+--Ограниченного Применения GNU. Если вы его не получили, сообщите об этом в Software Foundation, Inc.,
+--59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+class inherited TUL.Итераторы.Итератор "Итератор компонентов по запросу";
+
+
+inclass
+  func New(RecordC: class Com.Rec.IRecord; Filter: String=""; xArgs:Storage=nil): Итераторы.КомПоЗапросу;
+    var i: Integer;
+    Result = create;
+    Result.RecC = RecordC;
+    Result.Q = Query.Create([RecordC.RecordClass]);
+    Result.Q.Filter = Filter;
+    if xArgs<> nil then
+      for i  = 1 .. xArgs.Count do
+        Result.Q.SetField(xArgs.IndexByNumber[i], xArgs.ItemsByNumber[i]);
+      end;
+    end;
+
+    Result.Q.Select;
+  end;
+
+  func FromQuery(Q: Query; RecordC: class Com.Rec.IRecord): Итераторы.КомПоЗапросу;
+    --Итератор по полностью подготовленному и сделанному запросу.
+    Result = create;
+    Result.Q = Q;
+    Result.RecC = RecordC;
+  end;
+
+inobject private
+  var Q: Query;
+  var RecC: class Com.Rec.IRecord;
+
+inobject public
+  func Текущий synonym Current: Variant;
+     -- Возвращает текущий элемент итератора
+     return RecC.OpenRecord(Q.Current);
+  end;
+
+  func НаСледующий synonym MoveNext: Logical;
+     -- Переводит указатель на следующий элемент и возващает Истина
+     -- Если это невозможно - возвращает Ложь
+     if Q.EOF then
+       return False;
+     else
+       Q.Next;
+       return True;
+     end;
+  end;
+
+  func Сброс synonym Reset: Logical;
+     Q.First;
+     return true;
+  end;
+
+end
