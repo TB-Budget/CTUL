@@ -1,0 +1,66 @@
+class "Редактор IStorage";
+
+inclass
+  func Create: IStorageEditor;
+    Result = inherited Create;
+    Result.Template.OnOpen = "BlankOnOpen";
+  end;
+inobject
+  Data: Com.IStorage;
+--------------------------------------------------------------------------------
+--{ Обработчики событий бланка
+
+  proc BlankOnOpen(Context :Variant);
+    var i,j,k:Integer;
+    var c:TemplateCell;
+    -- Вызывается при создании объекта класса
+    for k = 1..Template.SectionsCount do
+      for j = 1..Template.Section[k].RowsCount do
+        for i = 1..Template.Section[k].ColumnsCount do
+          c = Template.Section[k].Cell[i, j];
+          if c.CellType = Template.CalcFieldCell then
+             c.OnOutput = "FieldOnOutput";
+             c.OnInput = "FieldOnInput";
+          end;
+        od;
+      od;
+    od;
+  end;
+
+  func FieldOnOutput(Cell :TemplateCell; Value :Variant;
+    Action :Template.OutputTypes; var Format :String) :Variant;
+    var comp: Com.IComponent;
+    -- Обработка вывода значения поля в зависимости от типа события
+    -- Параметры:
+    --   Cell: клетка шаблона
+    --   Value: значение в поле клетки
+    --   Action: тип вывода (Вывод,Вычисление,Копирование,Экспорт)
+    --   Format: строка-формат вывода значения
+--    if Action = Template.Calculation then
+      comp = Data.CompByName(Cell.Contents);
+      if comp is Com.Fld.IValue then
+        result = (comp as Com.Fld.IValue).Value;
+      else
+        Result = Value; -- Что получили, то и выводим
+      end;
+  --  end;
+  end;
+
+  func FieldOnInput(Cell :TemplateCell; Value :Variant) :Logical;
+    -- Введенное значение корректно. Присвоить его переменной поля
+    -- Параметры:
+    --   Cell: клетка шаблона
+    --   Value: введенное в поле значение 
+    var comp: Com.IComponent;
+
+      comp = Data.CompByName(Cell.Contents);
+      if comp is Com.Fld.IValue then
+        (comp as Com.Fld.IValue).Value = Value;
+      end;
+     
+    Result = True; -- Продолжаем стандартную обработку
+  end;
+
+--}
+
+end
