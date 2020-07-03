@@ -59,7 +59,7 @@ inclass public -----------------------------------------------------------------
 inobject public -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
   #help `ƒобавление произвольного услови€ в будущий фильтр`;
-  proc AddCondition synonym ƒобавить”словие (locCnd: string);
+  proc AddCondition synonym Add, ƒобавить”словие (locCnd: string);
     locCnd = Trim(locCnd);
     if (locCnd <> nil):
       ArrayAdd(aCondition, locCnd);
@@ -72,7 +72,7 @@ inobject public ----------------------------------------------------------------
   locFieldBeg : им€ пол€ даты начала
   locFieldEnd : им€ пол€ даты окончани€
   `;
-  proc AddConditionByDate synonym ƒобавить”словиеѕоƒате (locDateBeg: date; locFieldBeg: string = FieldDateB; locFieldEnd: string = FieldDateE);
+  proc AddConditionByDate synonym AddByDate, ƒобавить”словиеѕоƒате (locDateBeg: date; locFieldBeg: string = FieldDateB; locFieldEnd: string = FieldDateE);
     var locCnd: string = SomeFieldsFilterByDates(locDateBeg, locDateBeg, locFieldBeg, locFieldEnd);
     AddCondition(locCnd);
   end;
@@ -82,7 +82,7 @@ inobject public ----------------------------------------------------------------
   locDateEnd : дата запроса (об€зательный)
   locFieldEnd : им€ пол€ даты окончани€
   `;
-  proc AddConditionByDateLater synonym ƒобавить”словиеѕоƒатеѕозднее (locDateEnd: date; locFieldEnd: string = FieldDateE);
+  proc AddConditionByDateLater synonym AddByDateLater, ƒобавить”словиеѕоƒатеѕозднее (locDateEnd: date; locFieldEnd: string = FieldDateE);
     if (locDateEnd <> nil):
       var locCnd: string = '(' + locFieldEnd + '>=' + Str(locDateEnd) + ') or (' + locFieldEnd + '=nil)'; -- дата окончани€ не раньше ограничени€ или не определена
       AddCondition(locCnd);
@@ -98,7 +98,7 @@ inobject public ----------------------------------------------------------------
   locFieldBeg : им€ пол€ даты начала
   locFieldEnd : им€ пол€ даты окончани€
   `;
-  proc AddConditionByDates synonym ƒобавить”словиеѕоƒатам  (locDateBeg, locDateEnd: date; locFieldBeg: string = FieldDateB; locFieldEnd: string = FieldDateE);
+  proc AddConditionByDates synonym AddByDates, ƒобавить”словиеѕоƒатам  (locDateBeg, locDateEnd: date; locFieldBeg: string = FieldDateB; locFieldEnd: string = FieldDateE);
     var locCnd: string = SomeFieldsFilterByDates(locDateBeg, locDateEnd, locFieldBeg, locFieldEnd);
     AddCondition(locCnd);
   end;
@@ -108,7 +108,7 @@ inobject public ----------------------------------------------------------------
   aId : массив значений ID, тип значений - любой; при пустом значении под результирующий фильтр не попадет ни одной записи
   locFieldKey : им€ ключевого пол€ (по умолчанию - "DocId").
   `;
-  proc AddConditionByIdArray synonym ƒобавить”словиеѕоћассиву лючей (aId: variant[]; locFieldKey: string = 'DocId');
+  proc AddConditionByIdArray synonym AddByIdArray, ƒобавить”словиеѕоћассиву лючей (aId: variant[]; locFieldKey: string = 'DocId');
     if LengthOfArray(aId) > 0:
       AddCondition(locFieldKey + ' in ' + ToStr(aId));
     else
@@ -120,17 +120,17 @@ inobject public ----------------------------------------------------------------
   јргументы:
   ClassRecord : класс записей
   `;
-  proc AddConditionByClassRecord synonym ƒобавить”словиеѕо лассу«аписей (ClassRecord: Class Record);
+  proc AddConditionByClassRecord synonym AddByClassRecord, ƒобавить”словиеѕо лассу«аписей (ClassRecord: Class Record);
     if (ClassRecord <> nil):
       AddCondition('ClassType=' + ClassRecord.ClassProject + '.' + ClassRecord.ClassName);
     fi;
   end;
 
-  proc AddConditionGroupOnly synonym ƒобавить”словие“олько√руппы;
+  proc AddConditionGroupOnly synonym AddGroupOnly, ƒобавить”словие“олько√руппы;
     AddCondition('isGroup=-1');
   end;
 
-  proc AddConditionGroupExcept synonym ƒобавить”словие роме√рупп;
+  proc AddConditionGroupExcept synonym AddGroupExcept, ƒобавить”словие роме√рупп;
     AddCondition('isGroup<>-1');
   end;
 
@@ -139,7 +139,7 @@ inobject public ----------------------------------------------------------------
   полученный результат помещаетс€ в первый элемент набора условий,
   остальные услови€ удал€ютс€.
   `;
-  proc CompressConditionsToOne synonym —жать”слови€ (MainRule: tLogOperations = byAnd);
+  proc CompressConditionsToOne synonym Compress, —жать”слови€ (MainRule: tLogOperations = byAnd);
     var locResult: string;
     locResult = GetFilter(MainRule);
     ClearConditions;
