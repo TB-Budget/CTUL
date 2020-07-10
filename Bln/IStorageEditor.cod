@@ -5,14 +5,36 @@ inclass
     Result = inherited Create;
     Result.Template.OnOpen = "BlankOnOpen";
   end;
+inobject private
+  var Data_: Com.IStorage;
+  var RepSections: TUL.Коллекция.Dict;
+  var CLink: Variant[];
 inobject
-  Data: Com.IStorage;
+  var Data: Com.IStorage get func:Com.IStorage return Data_; end
+                         set proc(a:Com.IStorage) if Data_ <> a: Data_ = a; RSSet; BlankOnRead; fi; end;
 --------------------------------------------------------------------------------
 --{ Обработчики событий бланка
+  proc BlankOnRead;
+  end;
+
+  proc RSSet;
+   if RepSections <> nil and Data_ <> nil then
+     RepSections.Сброс;
+     while RepSections.НаСледующий do
+       if Data_.GetField(RepSections.Get_(RepSections.Текущий)) Is Com.ISubtable then
+         Template.Section[RepSections.Текущий].FramesCount =
+           (Data_.GetField(RepSections.Get_(RepSections.Текущий)) As Com.ISubtable).Count;
+       fi;
+
+     od;
+   fi;
+  end;
 
   proc BlankOnOpen(Context :Variant);
     var i,j,k:Integer;
+    var SecName: String;
     var c:TemplateCell;
+    RepSections = TUL.Коллекция.Dict.Create;
     -- Вызывается при создании объекта класса
     for k = 1..Template.SectionsCount do
       for j = 1..Template.Section[k].RowsCount do
@@ -21,28 +43,64 @@ inobject
           if c.CellType = Template.CalcFieldCell then
              c.OnOutput = "FieldOnOutput";
              c.OnInput = "FieldOnInput";
+          fi;
+          if Pos("[].", c.Contents) > 1:
+             --Проверка повторяющейся секции
+             SecName = SubStr(c.Contents, 1, Pos("[].", c.Contents) - 1);
+             if not RepSections.Содержит(k) then
+               RepSections.Add(k, SecName);
+               --Todo: множественные подстановки
+               --Todo: обработка добавления/удаления
+             fi;
           end;
         od;
       od;
     od;
+    RSSet;
+  end;
+
+  func GetFldValue(Cell :TemplateCell):Com.Fld.IValue;
+    var comp: Variant;
+    var CName: String;
+    var CSrc: Com.IStorage;
+    CName = Cell.Contents;
+    CSrc = Data;
+    if  Pos("[].", Cell.Contents) > 1 and  RepSections.Содержит(Cell.Owner.ParentIndex) and
+        RepSections.Get_(Cell.Owner.ParentIndex) = SubStr(Cell.Contents,1, Pos("[].", Cell.Contents)-1) then
+      CSrc = (Data.GetField(SubStr(CName,1, Pos("[].", Cell.Contents)-1)) as Com.ISubtable).Items[Template.Frame];
+      CName = SubStr(CName,Pos("[].", CName) + 3, Length(CName));
+    fi;
+    if  Pos(".", CName) > 1:
+     --разыменования
+       comp = CSrc.GetField(ExtractWord(CName, 1, "."));
+       if comp is Com.Fld.IValue and (comp as Com.Fld.IValue).Value is Com.IStorage then
+         CSrc = (comp as Com.Fld.IValue).Value;
+         CName = SubStr(CName,Pos(".", CName) + 1, Length(CName));
+         CLink[LengthOfArray(Clink) + 1] = CSrc;
+       fi;
+    fi;
+    comp = CSrc.GetField(CName);
+    if comp is Com.Fld.IValue then
+      Result = comp;
+    else --Всех остальных выводим напрямую
+      Result = Com.Fld.IVar.CreateEx(CName, VarType(comp));
+      Result.Value = comp;
+    fi;
   end;
 
   func FieldOnOutput(Cell :TemplateCell; Value :Variant;
     Action :Template.OutputTypes; var Format :String) :Variant;
-    var comp: Com.IComponent;
     -- Обработка вывода значения поля в зависимости от типа события
     -- Параметры:
     --   Cell: клетка шаблона
     --   Value: значение в поле клетки
     --   Action: тип вывода (Вывод,Вычисление,Копирование,Экспорт)
     --   Format: строка-формат вывода значения
+      var comp: Com.Fld.IValue;
 --    if Action = Template.Calculation then
-      comp = Data.CompByName(Cell.Contents);
-      if comp is Com.Fld.IValue then
-        result = (comp as Com.Fld.IValue).Value;
-      else
-        Result = Value; -- Что получили, то и выводим
-      end;
+      comp = GetFldValue(Cell);
+      result = comp.Value;
+      CLink = [];
   --  end;
   end;
 
@@ -51,13 +109,13 @@ inobject
     -- Параметры:
     --   Cell: клетка шаблона
     --   Value: введенное в поле значение 
-    var comp: Com.IComponent;
+    var comp: Com.Fld.IValue;
 
-      comp = Data.CompByName(Cell.Contents);
-      if comp is Com.Fld.IValue then
-        (comp as Com.Fld.IValue).Value = Value;
-      end;
-     
+    comp = GetFldValue(Cell);
+    if comp <> nil then
+      comp.Value = Value;
+    end;
+    CLink = [];
     Result = True; -- Продолжаем стандартную обработку
   end;
 
