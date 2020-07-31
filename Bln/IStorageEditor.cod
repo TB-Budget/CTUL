@@ -30,6 +30,28 @@ inobject
    fi;
   end;
 
+  func SectInsert(Section :TemplateSection; Index :Integer) :Logical;
+    -- Действия перед вставкой нового кадра в периодическую секцию
+    -- Параметры:
+    --   Section: секция, в которую вставили кадр
+    --   Index: номер кадра
+    if RepSections.Содержит(Section.ParentIndex) then
+      if Data_.GetField(RepSections.Get_(Section.ParentIndex)) Is Com.ISubtable then
+        (Data_.GetField(RepSections.Get_(RepSections.Текущий)) As Com.ISubtable).Insert(Index);
+      fi;
+    fi;
+    Result = True; -- Разрешаем вставить кадр
+  end;
+
+  func SectDelete(Section :TemplateSection; Index :Integer) :Logical;
+    if RepSections.Содержит(Section.ParentIndex) then
+      if Data_.GetField(RepSections.Get_(Section.ParentIndex)) Is Com.ISubtable then
+        (Data_.GetField(RepSections.Get_(RepSections.Текущий)) As Com.ISubtable).Delete(Index);
+      fi;
+    fi;
+    Result = True; -- Разрешаем удалить кадр
+  end;
+
   proc BlankOnOpen(Context :Variant);
     var i,j,k:Integer;
     var SecName: String;
@@ -51,6 +73,8 @@ inobject
                RepSections.Add(k, SecName);
                --Todo: множественные подстановки
                --Todo: обработка добавления/удаления
+               c.Owner.OnInsert = "SectInsert";
+               c.Owner.OnDelete = "SectDelete";
              fi;
           end;
         od;
@@ -67,7 +91,7 @@ inobject
     CSrc = Data;
     if  Pos("[].", Cell.Contents) > 1 and  RepSections.Содержит(Cell.Owner.ParentIndex) and
         RepSections.Get_(Cell.Owner.ParentIndex) = SubStr(Cell.Contents,1, Pos("[].", Cell.Contents)-1) then
-      CSrc = (Data.GetField(SubStr(CName,1, Pos("[].", Cell.Contents)-1)) as Com.ISubtable).Items[Template.Frame];
+      CSrc = (Data.GetField(SubStr(CName,1, Pos("[].", Cell.Contents)-1)) as Com.ISubtable).Items[Cell.Frame];
       CName = SubStr(CName,Pos("[].", CName) + 3, Length(CName));
     fi;
     if  Pos(".", CName) > 1:
@@ -77,6 +101,8 @@ inobject
          CSrc = (comp as Com.Fld.IValue).Value;
          CName = SubStr(CName,Pos(".", CName) + 1, Length(CName));
          CLink[LengthOfArray(Clink) + 1] = CSrc;
+       elsif comp is Com.Fld.IValue and (comp as Com.Fld.IValue).Value = nil then
+         CName = ExtractWord(CName, 1, ".");
        fi;
     fi;
     comp = CSrc.GetField(CName);
