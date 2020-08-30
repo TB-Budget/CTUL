@@ -1,0 +1,86 @@
+﻿class "Реализация стека";
+
+inclass public
+--{{ inclass public
+
+  type tStack = Stack;
+
+  func Create: tStack;
+    result = inherited Create;
+  end;
+
+  #Help `Приводит aObject к типу tStack или создает новый tStack, если aObject = nil`;
+  func TSelf(aObject :Object = nil) :tStack;
+    if aObject = nil:
+      Result = Create;
+    else
+      Result = aObject;
+    fi;
+  end;
+
+  #Help `Определяет принадлежность объека к текущему классу`;
+  func isSelfClass Synonym isTSelf (aObject :Object) :Logical ;
+    Result = aObject.InheritsFrom(self);
+  end;
+
+--}}  inclass public
+
+
+
+inclass private
+
+
+inobject public
+
+  proc PUSH(v :Variant); -- добавление элемента на вершину стека;
+    _Stack[DEEP+1] = v;
+  end;
+
+  func POP :Variant; -- извлечение элемента с вершины стека.
+    result = _Stack[DEEP];
+    DeleteFromArray(_Stack, DEEP);
+  end;
+
+  func LAST :Variant; -- чтение элемента с вершины стека.
+    if DEEP > 0:
+      result = _Stack[DEEP];
+    fi;
+  end;
+
+  func DEEP :integer; -- глубина стека
+    LengthOfArray(_Stack);
+  end;
+
+
+
+  #Default;
+  Items[aRow :Integer]: Variant get @GetItem set @SetItem;
+
+
+  #Help ` Получить копию всего _Stack/ записать целиком _Stack`;
+  var Source :variant[] get @GetSource set @SetSource;
+
+
+
+inobject private
+--{{ inobject private
+    _Stack: Variant[];
+
+    func GetItem(aRow :integer) :variant;
+      result = _Stack[aRow];
+    end;
+    proc SetItem(aRow :integer; aValue :variant);
+      _Stack[aRow] = aValue;
+    end;
+
+    func GetSource :variant[];
+      result = _Stack;
+    end;
+    proc SetSource(aValue :variant[]);
+      _Stack = aValue;
+    end;
+
+
+--}} inobject private
+
+end

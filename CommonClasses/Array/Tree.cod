@@ -1,0 +1,1262 @@
+﻿class inherited Array.Dim2 "Аналог grid" synonym Дерево;
+import classes Array.Lib;
+--import Sconsole;
+
+inclass public
+--{{ inclass public
+  type tArrayTree = Array.Tree;
+  func Create: tArrayTree;
+    result = inherited Create;
+  end;
+
+--  func CreateEx synonym New (): Массив.Tree;
+--    result = inherited Create;
+--  end;
+
+
+  --------------------------------------------------------------------------------------
+  ------------------- константы номеров столбцов в массиве FItems ----------------------
+
+  --{---------  столбцы с доступом по текущей позиции через item[const] ----------------
+  const Order       :integer = 1; --Code+ls
+  const Level       :integer = 2; --:integer
+  const Code        :integer = 3; -- Path+Elem
+  const CodeName    :integer = 4; -- Выводится описание группы
+  const Path        :integer = 5; -- Path
+  const Elem        :integer = 6; -- Elem
+  const Name        :integer = 7; --:string
+  const Owner       :integer = 8; --:integer
+  const Childs      :integer = 9; --:integer; -- количество элементов child к текущей включая вложенные
+  const ChildsSel   :integer = 10; --:integer; -- количество элементов child к текущей включая вложенные
+  --}---------  столбцы с доступом по текущей позиции через item[const] ----------------
+
+  --{---------  столбцы с доступом по текущей позиции через свойство ----------------
+    const TreeIsSel   :integer = 11; -- свойство IsSel :logical
+    const TreeIsGroup :integer = 12; -- свойство IsGroup :logical
+    const TreeObjAll  :integer = 13; -- свойство ObjAll  :object[] массив из всех Ctrl.IStatic для этой line
+
+    -----------  столбцы определяющие видимость групп и элементов ----------------
+    const TreeOpen    :integer = 14; -- свойство Open    :logical
+    const TreeVisible :integer = 15; -- свойство Visible :logical
+    ------------  столбцы определяющие внешний вид групп и элементов ----------------
+    const TreeImage       :integer = 16; --свойство Image :integer -  номер строки в ImageDef
+    const TreeFont        :integer = 17; --свойство Font  :variant[] то же что и item[TreeFont] as variant[]
+    const TreeFontGroup   :integer = 18; --свойство FontGroup :variant[] то же что и item[FontGroup] as variant[]
+  --}---------  столбцы с доступом по текущей позиции через свойство ----------------
+
+  ------------------- константы номеров столбцов в массиве FItems ----------------------
+  --------------------------------------------------------------------------------------
+
+
+  const TreeAdd         :integer = 19; -- номер столбца с которого хранятся дополнительные столбцы
+
+  const ImageDefFont          :integer = 1;
+  const ImageDefSelect        :integer = 2;
+  const ImageDefCloseGroup    :integer = 3;
+  const ImageDefCloseGroupNil :integer = 4;
+  const ImageDefOpenGroup     :integer = 5;
+  const ImageDefElem          :integer = 6;
+  const ImageDefElemFont      :integer = 7;
+  const ImageDefElemFontSize  :integer = 8;
+  const ImageDefElemFontColor :integer = 9;
+  const ImageDefElemFontBold  :integer = 10;
+  const ImageDefElemFontItalic:integer = 11;
+
+  -{
+    для вывода строчки дерева надо четыре клетки
+    1 - клетка кнопка (группа или элемент) отступа с выравниванием вправо
+      1 группа открыта
+      2 группа закрыта и нет детей
+      3 группа закрыта и есть дети
+      4 элемент
+    2 - клетка выбор
+      1 группа выбрана
+      2 группа не выбрана
+
+    3 - клетка статус выбора
+           --------------1 ((группа выбрана или AutoSelect) со всеми детьми) или ((группа выбрана или AutoSelect) и нет детей)  =галка
+   !  1 группа выбрана и нет детей  =галка
+   !  1 группа выбрана со всеми детьми  =галка в прямоугольнике
+   ?  2 группа выбрана не со всеми детьми =галка и рядом квадрат в прямоугольнике
+   !  3 группа не выбрана и нет детей =пусто (как невыбранный элемент)
+
+   !  3 группа не выбрана и все дети не выбраны =пусто
+   !  3 группа не выбрана и есть выбранные дети =квадрат в прямоугольнике
+   !  4 элемент не выбран = пусто
+   !  5 элемент выбран = галка
+    4 - клетка имя группы
+      1 имя группы
+    каждая клетка имеет
+     WebSide    = FONT[FontName,Size,Color,Bold,Italic], ImageName, Text
+     ClientSide = FONT[FontName,Size,Color,Bold,Italic], ImageName, Text
+     Итого
+      10 для WebSide                                                    CloseGroup
+      10 для ClientSide                                                 CloseGroupNil
+      CellStyleNil :variant[] = ['','',0,0,false,false,''];
+      type CellStyle = variant[];                            and count=0
+      Styles :variant[3]:= [ [[1, WebSide, IsGroup and Open=true]             ,[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[1, WebSide, IsGroup and Open=false and Count=0],[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[1, WebSide, IsGroup and Open=false and Count>0],[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[1, WebSide, IsGroup=false]                     ,[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+
+                            ,[[2, WebSide, IsGroup and Select and Count=CountSelect]      ,[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[2, WebSide, IsGroup and Select and Count>CountSelect]      ,[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[2, WebSide, IsGroup and Select=false and CountSelect=0]      ,[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[2, WebSide, IsGroup and Select=false and CountSelect>0]      ,[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+
+                            ,[[not WebSide, Style],[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[Key,Style],[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[Key,Style],[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                            ,[[Key,Style],[Text,FontName,Size,Color,Bold,Italic,ImageName]]
+                           ]
+      StatusGroup  :variant[2];
+      StatusSelect :variant[2];
+      StatusName   :variant[2];
+
+  -}
+
+
+  const TreeFontName          :integer = 1;
+  const TreeFontSize          :integer = 2;
+  const TreeFontColor         :integer = 3;
+  const TreeFontBold          :integer = 4;
+  const TreeFontItalic        :integer = 5;
+
+
+
+
+  -- неясно - нужно ли обнулять ссылки...
+  proc NilTreeObj(var aTree :variant[2]);
+    for var i = 1..LengthOfArray(aTree) do
+      aTree[i, TreeObjAll] = nil;
+    od;
+  end;
+
+--}}  inclass public
+
+
+
+inclass private
+
+
+inobject public
+
+  var TreeCanSelect :logical;
+  var ls        :string:= '.'; -- разделитель групп
+
+
+  --{{ свойства работающие с текущим Position
+  var IsGroup       :logical get @GetIsGroup set @SetIsGroup;
+  var IsSel         :logical get @GetIsSel   set @SetIsSel;
+  var Open          :logical get @GetOpen    set @SetOpen;
+  var Visible       :logical get @GetVisible set @SetVisible;
+
+  var Image              :integer get @GetTreeImage            set @SetTreeImage ;
+  var ImageFont          :string  get @GetImageFont            set @SetImageFont ;
+  var ImageSelect        :string  get @GetImageSelect          set @SetImageSelect        ;
+  var ImageCloseGroup    :string  get @GetImageCloseGroup      set @SetImageCloseGroup    ;
+  var ImageCloseGroupNil :string  get @GetImageCloseGroupNil   set @SetImageCloseGroupNil ;
+  var ImageOpenGroup     :string  get @GetImageOpenGroup       set @SetImageOpenGroup     ;
+  var ImageElem          :string  get @GetImageElem            set @SetImageElem          ;
+  var ImageElemFont      :string  get @GetImageElemFont        set @SetImageElemFont      ;
+  var ImageElemFontSize  :integer get @GetImageElemFontSize    set @SetImageElemFontSize  ;
+  var ImageElemFontColor :integer get @GetImageElemFontColor   set @SetImageElemFontColor ;
+  var ImageElemFontBold  :logical get @GetImageElemFontBold    set @SetImageElemFontBold  ;
+  var ImageElemFontItalic:logical get @GetImageElemFontItalic  set @SetImageElemFontItalic;
+
+
+  var Font               :variant[] get @GetTreeFont           set @SetTreeFont ;
+  var FontName           :string  get @GetFontName             set @SetFontName ;
+  var FontSize           :integer get @GetFontSize             set @SetFontSize ;
+  var FontColor          :integer get @GetFontColor            set @SetFontColor;
+  var FontBold           :logical get @GetFontBold             set @SetFontBold ;
+  var FontItalic         :logical get @GetFontItalic           set @SetFontItalic;
+
+  var FontGroup          :variant[] get @GetTreeFontGroup      set @SetTreeFontGroup ;
+  var FontGroupName      :string  get @GetFontGroupName             set @SetFontGroupName ;
+  var FontGroupSize      :integer get @GetFontGroupSize             set @SetFontGroupSize ;
+  var FontGroupColor     :integer get @GetFontGroupColor            set @SetFontGroupColor;
+  var FontGroupBold      :logical get @GetFontGroupBold             set @SetFontGroupBold ;
+  var FontGroupItalic    :logical get @GetFontGroupItalic           set @SetFontGroupItalic;
+
+
+  var Obj           :Object  get @GetObj set @SetObj; -- работа с первым Object из ObjAll
+  var ObjAll        :Object[]  get @GetObjAll set @SetObjAll;
+
+
+  #Help `  Добавить aObj в конец массива ObjAll`;
+  proc ObjAllAdd(aObj :Object);
+    Items3[FPosition, TreeObjAll, LengthOfArray(AsArrayV(FItems[FPosition, TreeObjAll]))+1] = aObj;
+  end;
+
+  --}}
+
+  -- параметры вывода
+  var IconsDir :String := "%Projects%\" + ClassProject + "\Attachment\Icons\";
+  var ImageDefCurrent :integer:= if(webside,1,1); -- по умолчанию вместо картинок - символы WingDings
+
+  func SetImageDef(aFont, aSelect, aCloseGroup, aCloseGroupNil, aOpenGroup, aElem, aFont1: string = nil; aSize, aColor: integer = nil; aBold, aItalic: logical = nil) :variant[];
+    result[ImageDefFont          ] = aFont;
+    result[ImageDefSelect        ] = aSelect;
+    result[ImageDefCloseGroup    ] = aCloseGroup;
+    result[ImageDefCloseGroupNil ] = aCloseGroupNil;
+    result[ImageDefOpenGroup     ] = aOpenGroup;
+    result[ImageDefElem          ] = aElem;
+    result[ImageDefElemFont      ] = aFont1;
+    result[ImageDefElemFontSize  ] = aSize;
+    result[ImageDefElemFontColor ] = aColor;
+    result[ImageDefElemFontBold  ] = aBold;
+    result[ImageDefElemFontItalic] = aItalic;
+  end;
+
+  #Help ' Добавляет новый вариант картинок для разных состояний';
+  func RegImageDef(aFont, aSelect, aCloseGroup, aCloseGroupNil, aOpenGroup, aElem, aFont1: string = nil; aSize, aColor: integer = nil; aBold, aItalic: logical = nil) :integer;
+    result = SearchInArray(ImageDef,aFont,[1]);
+    if result < 1:
+      result = LengthOfArray(ImageDef) + 1;
+    fi;
+    ImageDef[result] = SetImageDef(aFont, aSelect, aCloseGroup, aCloseGroupNil, aOpenGroup, aElem,aFont1,aSize,aColor,aBold,aItalic);
+  end;
+
+
+  var ImageDef :variant[2]:=
+  [SetImageDef('ImageName' --  ImageName = не шрифт а картинки
+               ,IconsDir+'PostClose'  -- галка в круге
+--               ,IconsDir+'Tasks'  -- галка в круге
+               ,IconsDir+'AddFolder'  -- папка закрытая с плюсом внутри
+               ,IconsDir+'Folder'  -- папка закрытая
+               ,IconsDir+'OpenFolder'  -- папка открытая
+               ,IconsDir+'Form'  -- страничка с текстом
+               ,''
+               ,0
+               )
+  ,SetImageDef('WingDings'
+               ,'ü' -- галка
+               ,'0' -- папка закрытая
+               ,'0' -- папка закрытая
+               ,'1' -- папка открытая
+               ,'2' -- страничка с текстом
+               ,''
+               ,0
+               )
+  ];
+--  var WingDings_Select :string = 'þ'; -- галка в квадрате
+--  var WingDings_UnSelect :string = '¨'; -- пустой квадрат
+
+--  ImageSelectDef        :string:='Kernel.Card.Run.Post'; --знак отмеченной группы/элемента
+--  ImageCloseGroupDef    :string:='Kernel.Card.Run.AddGroup'; --знак непустой закрытой группы
+--  ImageCloseGroupNilDef :string:=IconsDir+'Folder'; --знак пустой закрытой группы
+--  ImageOpenGroupDef     :string:='Kernel.File.Open';--знак открытой группы
+--  ImageCloseElemDef     :string:='Kernel.Account.Blanks';-- знак элемента
+  const StatOpenGroup     :integer = 1;
+  const StatCloseGroupNil :integer = 2;
+  const StatCloseGroup    :integer = 3;
+  const StatElem          :integer = 4;
+  func GetStat(ByPosition :integer = Fposition): integer;
+    var p :integer = Fposition;
+      Fposition = ByPosition;
+      if IsGroup:
+        if open:
+          result = StatOpenGroup;
+        else
+          if item[Childs] = nil:
+            result = StatCloseGroupNil;
+          else
+            result = StatCloseGroup;
+          fi;
+        fi;
+      else
+        result = StatElem;
+      fi;
+      Fposition = p;
+  end;
+
+  #Help ` Определяет картинку для текущей позиции(position) дерева
+          это открытая или закрытая(пустая/непустая) папка или конечный элемент`;
+  func ImageByStat(aStat :integer = nil): string;
+    if aStat = 0:
+      aStat = GetStat;
+    fi;
+    if    aStat = StatOpenGroup    : Result = ImageOpenGroup;
+    elsif aStat = StatCloseGroupNil: Result = ImageCloseGroupNil;
+    elsif aStat = StatCloseGroup   : Result = ImageCloseGroup;
+    else                             Result = ImageElem; --aStat = StatElem
+    fi;
+  end;
+
+
+  -- Kernel.Card.Run.Post галка в круге
+  -- Kernel.Card.Run.Cancel минус в круге
+  -- Kernel.File.Open открытая папка
+  -- Kernel.Card.Run.AddGroup закрытая папка с плюсом
+  -- Kernel.Account.Blanks заполненый листок
+  -- Kernel.File.New пустой листок
+  -- Kernel.Account.Comment желтый перечеркнутый круг
+  -- Kernel.Account.Journals толстая закрытая книга
+  -- Kernel.Account.References толстая закрытая книга a-z
+  -- Kernel.Project.Design.Editor пирамидка из 3 кубиков
+  -- Kernel.Project.Design.Compile пирамидка из 3 кубиков с галкой
+  -- Kernel.Window.Close крест
+  -- Kernel.Window.Fix иголка фиксирующая
+  -- Kernel.Window.Select окно с галкой
+  -- Kernel.Service.Messages восклицательный знак в треугольнике
+  #Help `  ширина на символ значка выбора(select)`;
+  TreeWsel :numeric :=7; -- для совместимости с WebSide делаем 7
+  #Help `  ширина отступа на 1 уровень`;
+  TreeW0 :numeric :=4;
+  #Help `  ширина на символ значка группы`;
+  TreeWG :numeric :=6;
+  #Help `  количество видимых колонок для значков группы`;
+  TreeCG :integer :=1; -- это отступ и кнопка группы
+  #Help `  ширина на символ текста`;
+  TreeWS :numeric :=3.28;
+  #Help `  max level - для автоподсчета ширины`;
+  TreeMaxLevel :integer;
+  #Help `  max level - для автоподсчета ширины`;
+  func GetTreeMaxLevel :integer;
+    var p: integer;
+    p = position;
+    reset;
+    while MoveNext do
+      if result < item[Level]:
+        result = item[Level];
+      fi;
+    od;
+    position = p;
+  end;
+  var TreeWidth :func(aColumn :integer) :numeric:=
+    func(aColumn :integer) :numeric
+      if aColumn = 0:
+        result = 1+item[Level]*TreeW0;
+      elsif aColumn = 1:
+        result = TreeWG;
+      elsif TreeCanSelect and aColumn = 2:
+        result = TreeWsel;
+      elsif TreeCanSelect and aColumn = 3:
+        result = TreeMaxWidth-(1 + item[Level]*TreeW0 + TreeWG + TreeWsel);
+      else -- not TreeCanSelect and aColumn = 2:
+        result = TreeMaxWidth-(1 + item[Level]*TreeW0 + TreeWG);
+      fi;
+    end;
+
+  var CellTextWidth :func(txt :string; aFont: variant[]): numeric;-- aFont=[Name :string = nil; aSize :string = nil; aBold :logical = nil; Italic :logical = nil]
+
+  #help `Для работы GetCellTextWidth(подсчет ширины колонки) нужна ссылка на TemplateCell`;
+  var AnyCell :variant; --AnyCell = AnyIControlCell.TplObject; -- где AnyIControlCell :Com.Ctrl.IControlCell и AnyIControlCell должен быть уже Show
+
+  func GetCellTextWidth (txt :string; aFont: variant[]): numeric;-- aFont=[Name :string = nil; aSize :string = nil; aBold :logical = nil; Italic :logical = nil]
+    Result = AnyCell.TextWidth(txt)+0.3;
+  end;
+--  winapi GetCharABCWidths
+--  winapi GetCharWidth32
+
+
+  #Help `  максимальная по длине Code с учетом level- для автоподсчета ширины`;
+  TreeMaxWidth :numeric;
+  #Help `  максимальная по длине Code с учетом level- для автоподсчета ширины`;
+  func GetTreeMaxWidth :numeric;
+    var p: integer;
+    var m: numeric;
+    p = position;
+    reset;
+    if CellTextWidth = nil and AnyCell <> nil:
+      CellTextWidth = @GetCellTextWidth;
+    fi;
+    while MoveNext do
+      if CellTextWidth<>nil :
+        m = 1 + item[Level]*TreeW0 + TreeWG + if(TreeCanSelect,TreeWsel,0) + CellTextWidth(item[CodeName],nil);
+      else
+        -- первые 10 символов по ширине кнопки остальные в 2 раза короче?
+        m = 1 + item[Level]*TreeW0 + TreeWG + if(TreeCanSelect,TreeWsel,0) + length(substr(item[CodeName],1,10))*TreeWS + length(system.delete(item[CodeName],1,10))*TreeWS;
+      fi;
+      if result < m:
+        result = m;
+      fi;
+    od;
+    position = p;
+  end;
+
+  #Help `  максимальная по длине Code с учетом level- для автоподсчета ширины`;
+  MaxColumnsWidth :numeric;
+  #Help `  максимальная по длине колонок для автоподсчета ширины`;
+  func GetMaxWidthColumns(cols :integer[] = nil) :numeric;
+    var p: integer;
+    var m: numeric;
+    var v: variant;
+    if lengthOfArray(cols) = 0:
+      cols = [Name];
+      for var j = TreeAdd..RowLength(1) do
+        cols[LengthOfArray(cols) + 1] = j;
+      od;
+    fi;
+    p = position;
+    reset;
+    while MoveNext do
+      m = 0;
+      for var j = 1..LengthOfArray(cols) do
+        v = item[cols[j]];
+        if VarType(v) = VarString:
+          if CellTextWidth<>nil:
+            m = m + CellTextWidth(v, nil);
+          else
+            m = m + length(v)*TreeWS;
+          fi;
+        elsif v = 1: -- StaticStyles.StaticButton = 1
+          m = m + 7.2; --Com.Consts.ButtonSize = 7.2;
+        else
+          #Warning 'Казунин: доделать подсчет ширины для кнопок и т.п.'; -- фиксированная ширина доп колонки?(с минусом)
+        fi;
+      od;
+      if result < m:
+        result = m;
+      fi;
+    od;
+    position = p;
+  end;
+
+
+  func GetWebModalHeight(AddHeight :numeric = nil; MaxHeight: logical = true) :numeric;
+    var p :integer;
+    p = position;
+    reset;
+    while MoveNext do
+      if Visible or MaxHeight:
+        result = result + 1;
+      fi;
+    od;
+    result = (34 * result + AddHeight) / 3.8;
+--    WebModalHeight = (34 * result + 35 + 42) / 3.8;
+    position = p;
+  end;
+
+
+--{{---------------  методы для заполнения дерева ----------------
+
+  #Help ` Вернет наименование по значению из TreeOrder`;
+  var extNameByTreeOrder :func (ValueOrder :string) :string;
+  #Help ` Вернет наименование группы по значению из TreeOrder`;
+  var extCodeNameByTreeOrder :func (ValueOrder :string) :string;
+
+  #Help `  Заполняет items по данным из списка строк
+           Данные добаляются уже по структуре tree в конец массива items`;
+  proc AddItemsBy(aValues :variant[2]);
+    var z :integer;
+    z = LengthOfArray(FItems);
+    for var i = 1..LengthOfArray(aValues) do
+      FItems[i+z]=ItemBy(aValues[i]);
+    od;
+  end;
+
+  #Help `  Проставляет Childs по подготовленной структуре
+           в которой нет недостающих групп`;
+  proc NormalizeChilds(IterGroup :integer = 0);
+  -- IterGroup = 0 - обработка всего items
+  -- IterGroup = nil - обработка items входящих в группу position /для этого надо NormalizeChilds(position)
+    ChildMap(@ChildCountNext,nil,IterGroup);
+  end;
+
+  #Help `  Раскрывает предков до root`;
+  proc AddSelectOwner(i :integer = Fposition; AddSel: integer; aProc :proc(aPosition :integer));
+    var p :integer = position;
+    var ChSel :integer;
+    var _isSel :logical;
+    if i>0 and AddSel <> 0:
+      Position = i;
+      while item[owner] > 0 do
+        Position = item[owner];
+        ChSel = item[ChildsSel];
+        _isSel = isSel;
+        item[ChildsSel] = ChSel + AddSel;
+        AddSel = item[ChildsSel]-ChSel;
+        if isSel: AddSel = AddSel + 1;
+        elsif _isSel: AddSel = AddSel - 1;
+        fi;
+        if aProc <> nil:
+          aProc(Position);
+        fi;
+      od;
+      Position = p;
+    fi;
+  end;
+
+
+  #Help `  Проставляет ChildsSel`;
+  proc SetTreeAllSelect(IterGroup :integer = 0; aValue :logical; aProc :proc(aPosition :integer)); --  func (ConditionParam :variant[]) :logical[]
+    var p :integer = FPosition;
+    var aEndPos :integer;
+    var ChSel, Ch, AddSel :integer;
+
+--    var _aProc :proc(aPosition :integer);
+    proc exec_aProc;
+      if aProc <> nil:
+        aProc(FPosition);
+      fi;
+    end;
+    FPosition = IterGroup;
+
+    if IterGroup = 0:
+      aEndPos = Count;
+    else
+      ChSel = Item[ChildsSel];
+      Ch = Item[Childs];
+      if isGroup:
+        if (aValue and isSel) or (not aValue and ChSel = 0): -- уже все выбрано
+          return;
+        else -- не все выбрано
+          aEndPos = FPosition + Ch;
+          if aValue:
+            item[ChildsSel] = Ch; -- заранее помечаем что все уже помечено
+            AddSel = item[ChildsSel] - ChSel + 1;
+          else
+            if isSel:
+              AddSel = -1;
+            fi;
+            item[ChildsSel] = 0;
+            AddSel = item[ChildsSel] - ChSel + AddSel;
+          fi;
+          exec_aProc;
+          AddSelectOwner(FPosition,AddSel,aProc);
+        fi;
+      else -- это элемент
+        if IsSel <> aValue:
+          IsSel = aValue;
+          exec_aProc;
+          AddSelectOwner(FPosition,if(aValue,1,-1),aProc);
+        fi;
+        return;
+      fi;
+    fi;
+    while MoveNextArrItem  and FPosition <= aEndPos do
+      ChSel = Item[ChildsSel];
+      Ch = Item[Childs];
+      if isGroup and ((aValue and isSel) or (not aValue and ChSel = 0)): -- пропускаем уже помеченную целиком группу
+        FPosition = FPosition + Ch;
+      else -- Основное действие
+        if isGroup:
+          if aValue:
+            item[ChildsSel] = Ch; -- заранее помечаем что все уже помечено
+          else
+            item[ChildsSel] = 0;
+          fi;
+          exec_aProc;
+        else
+          if IsSel <> aValue:
+            IsSel = aValue;
+            exec_aProc;
+          fi;
+        fi;
+      fi;
+    od;
+    FPosition = p;
+  end;
+
+
+  #Help `  Проставляет ChildsSel - инверсия выбора`;
+  proc SetTreeInvSelect(IterGroup :integer = 0; aProc :proc(aPosition :integer)); --  func (ConditionParam :variant[]) :logical[]
+    var p :integer;
+    p = FPosition;
+    var aEndPos :integer;
+    var ChSel, Ch :integer;
+    proc exec_aProc;
+      if aProc <> nil:
+        aProc(FPosition);
+      fi;
+    end;
+    FPosition = IterGroup;
+    if IterGroup = 0:
+      aEndPos = Count;
+    else
+      ChSel = Item[ChildsSel];
+      Ch = Item[Childs];
+      if not isGroup or isSel or ChSel = 0: -- элемент или группа полностью (выбранная/не выбранная)
+        SetTreeAllSelect(IterGroup, not isSel, aProc);
+        return;
+      fi;
+      aEndPos = FPosition + Ch;
+    fi;
+
+    while MoveNextArrItem  and FPosition <= aEndPos do
+      ChSel = Item[ChildsSel];
+      Ch = Item[Childs];
+      if not isGroup or isSel or ChSel = 0: -- элемент или группа полностью (выбранная/не выбранная)
+        SetTreeAllSelect(FPosition, not isSel, aProc);
+        FPosition = FPosition + Ch;
+      else
+        SetTreeInvSelect(FPosition, aProc);
+        FPosition = FPosition + Ch;
+      fi;
+    od;
+    FPosition = p;
+  end;
+
+  func SelectedAsFilter(WithGroup :logical = false; WithElem :logical = true) :logical[];
+    var p: integer;
+    if not (WithGroup or WithElem):
+      return nil;
+    fi;
+    p = position;
+    reset;
+    while MoveNext do
+      if isGroup:
+        if WithGroup and isSel:
+          result[position] = true;
+        fi;
+      else
+        if WithElem and isSel:
+          result[position] = true;
+        fi;
+      fi;
+    od;
+    position = p;
+  end;
+
+  #Help `  Вернет выбранные строки как массив variant[2]
+           колонки формируются по списку номеров колонок SelectCols: integer[]`;
+  func GetSelected(WithGroup :logical = false; WithElem :logical = true; SelectCols: integer[] = nil) :variant[2];
+    result = SelectByFilter(SelectedAsFilter(WithGroup, WithElem), SelectCols);
+  end;
+--  var Filter :function :=
+--  func (ConditionParam :variant[]) :logical[]
+--    var p :integer = FPosition;
+--    var EnumParam :variant[2];
+--    EnumParam = [[],[],ConditionParam];
+--    reset;
+--    Enum(FPosition, @EnumNextArrItem, EnumParam, @EnumProcFilter, @EnumConditionMatch, result);
+--    FPosition = p;
+--  end;
+
+
+  #Help `  Проставляет Owner по подготовленной структуре
+           в которой нет недостающих групп`;
+  proc NormalizeOwnerAfterNormalizeGroups;
+    var p :integer;
+    func GetNormCodeByLastStack: string;
+      return FItems[Stack[LengthOfArray(Stack)], Code];
+    end;
+    p = position;
+    Reset;
+    Stack = nil;
+    while MoveNext do
+      if LengthOfArray(Stack)>0 and not(item[Level] = LengthOfArray(Stack) and GetNormCodeByLastStack = item[Path]): -- не шагаем по шагаем по подгруппе
+        while LengthOfArray(Stack)>0 and pos(GetNormCodeByLastStack, item[Path])<>1 do
+          pop;  --DeleteFromArray(Stack, LengthOfArray(Stack));-- pop;
+        od;
+      fi;
+      item[owner] = LAST;
+      if IsGroup:
+         PUSH(Position); --Stack[LengthOfArray(Stack)+1] = Position; --  PUSH(Position);
+      fi;
+    od;
+    position = p;
+  end;
+
+  #Help `  Добавляются недостающие группы`;
+  func  NormalizeGroups :variant[2];
+    var norm :variant[2];
+    var inorm, p :integer;
+
+    proc AddCurrent;
+      inorm = inorm + 1;
+      if IsGroup:
+        Stack[LengthOfArray(Stack)+1] = inorm;-- PUSH(inorm);
+      fi;
+      norm[inorm] = FItems[position];
+    end;
+
+    func GetNormCodeByLastStack: string;
+      return norm[Stack[LengthOfArray(Stack)], Code];
+    end;
+
+    proc Add(aElem :string); -- автодобавление группы
+      var NormPath :string;
+      var NameNewGroup :string;
+      var CodeNameNewGroup :string;
+      if LengthOfArray(Stack) > 0:
+        NormPath = GetNormCodeByLastStack+ls;
+      fi;
+      inorm = inorm + 1;
+      Stack[LengthOfArray(Stack)+1] = inorm;-- PUSH(inorm);
+      if extCodeNameByTreeOrder <> nil:
+        CodeNameNewGroup = extCodeNameByTreeOrder(NormPath+aElem+ls);
+      else
+        CodeNameNewGroup = aElem;
+      fi;
+      if extNameByTreeOrder <> nil:
+        NameNewGroup = extNameByTreeOrder(NormPath+aElem+ls);
+      else
+        NameNewGroup = CodeNameNewGroup;
+      fi;
+      norm[inorm]=ItemBy([NormPath+aElem+ls, CodeNameNewGroup, NameNewGroup]);
+    end;
+
+
+    --------  добавление недостающих групп  ----------------
+    p = position;
+    Stack = nil;
+    Sort([Order]);
+    --for var z = 1..LengthOfArray(FItems) do trace(FItems[z]); od;
+    Reset;
+    while MoveNext do
+     if item[Level] = 0: --корневой элемент
+       Stack = nil;
+       AddCurrent; -- записали в result[inorm]
+--       if IsGroup:
+--          Stack[LengthOfArray(Stack)+1] = inorm; --  PUSH(inorm);
+--       fi;
+     elsif item[Level] = LengthOfArray(Stack) and GetNormCodeByLastStack = item[Path]: -- шагаем по подгруппе
+       AddCurrent; -- записали в result[inorm]
+       if  IsGroup:
+          Stack[LengthOfArray(Stack)+1] = inorm;--  PUSH(inorm);
+       fi;
+     else -- откат группы
+       while LengthOfArray(Stack)>0 and pos(GetNormCodeByLastStack, item[Path])<>1 do
+         DeleteFromArray(Stack, LengthOfArray(Stack));-- pop;
+       od;
+       while LengthOfArray(Stack)<item[Level] do
+         Add(ExtractWord(item[Path],LengthOfArray(Stack)+1,ls)); -- добавляем автогруппу
+       od;
+       AddCurrent; -- записали в result[inorm]
+     fi;
+    od;
+    position = p;
+
+--    SetTreeOwner(NewTree);
+--    SetTreeVisible(NewTree);
+
+    Return norm;
+  end;
+
+
+  #Help `  Нормализует(добавляет/рассчитывает) Groups, Owner, Childs, TreeMaxLevel, TreeMaxWidth`;
+  proc NormalizeTree;
+    FItems = NormalizeGroups; -- меняем напрямую - т.к. количество колонок не меняется
+    NormalizeOwnerAfterNormalizeGroups;
+    NormalizeChilds;
+    TreeMaxLevel = GetTreeMaxLevel;
+    TreeMaxWidth = GetTreeMaxWidth;
+    --NormalizeVisible; -- отвечает за первичную прорисовку. Пока не прорисаван шаблон не применять
+  end;
+
+--}}---------------  методы для заполнения дерева ----------------
+
+
+
+--{{ методы для отображения дерева
+  #Help `  Заполняет столбец значения видимости, не применяя новое значение к объектам`;
+  proc SetTreeVisible(aVisible :logical = true);
+    var p :integer;
+    p = position;
+    reset;
+    while MoveNext do
+      Visible = aVisible;
+    od;
+    position = p;
+  end;
+
+  proc SetOpenAll;
+    SetOpenStat(true);
+  end;
+  proc SetCloseAll;
+    SetOpenStat(false);
+  end;
+  proc SetOpenStat(NewStat :logical);
+    var p :integer = position;
+    reset;
+    while MoveNext do
+      Open = NewStat;
+    od;
+    position = p;
+  end;
+
+
+  #Help `  Раскрывает предков до root`;
+  proc OpenTree(i :integer = Fposition);
+    var p :integer = position;
+    if i>0:
+      Position = i;
+      while item[owner] > 0 do
+        Position = item[owner];
+        Open = true;
+      od;
+      Position = p;
+    fi;
+  end;
+
+  func FirstElem: integer;
+    Result = SearchInArray(FItems, false, [TreeIsGroup]);
+  end;
+
+  func PositionByOrder(FindOrder :string) :integer;
+    --Result = SearchInArray(FItems, FindOrder, [Order], true);
+    Result = Search(FindOrder, [Order], true)[1];
+  end;
+
+  #Help `  Инициализация Visible всех элементов из IterGroup
+           Параметры:
+             IterGroup = 0 - обработка всего items
+             иначе - обработка группы со всеми подгруппами
+           Применяется при инициализации после отрисовки на шаблоне`;
+  proc NormalizeVisible(IterGroup :integer = 0);
+    ChildMap(@ChildMapForAllNext,@VisibleByOwnerAlways,IterGroup);
+  end;
+
+  #Help `  Возвращает true при совершенной операции, false - объект применения не найден
+           Делает видимой/невидимой секцию в шаблоне в которой находится aCtrl`;
+--  var SetLineVisible :func (aCtrl :variant[]; aVisible :logical) :logical:=@SetLineVisibleWeb;
+  var SetLineVisible :func (aCtrl :variant[]; aVisible :logical; ByPosition :integer) :logical:=if(webside,@SetLineVisibleWeb,@SetLineVisibleTpl);
+
+  -- пример метода работы с секциями в серверном классе
+  func SetLineVisibleTpl(aCtrl :variant[]; aVisible :logical; ByPosition :integer = 0) :logical;
+    var aTplObject: variant;
+    if aCtrl[1]<>nil:
+      aTplObject = aCtrl[1].TplObject;
+      if aTplObject<>nil:
+        aTplObject.Owner.Visible = aVisible; -- включаем/выключаем сразу всю секцию
+        result = true;
+      fi;
+    fi;
+  end;
+
+  func GroupStatVisible(aCtrl :variant[]; ByPosition :integer = FPosition) :logical;
+    var stat :integer = getStat(ByPosition);
+    result = aCtrl[2] <> nil and aCtrl[3] <> nil and aCtrl[4] <> nil;
+    if result:
+      aCtrl[2].Visible = stat = StatOpenGroup or stat = StatElem;
+      aCtrl[3].Visible = stat = StatCloseGroupNil;
+      aCtrl[4].Visible = stat = StatCloseGroup;
+    fi;
+  end;
+
+  func SetLineVisibleWeb(aCtrl :variant[]; aVisible :logical; ByPosition :integer = 0) :logical;
+    var j :integer;
+    result = true;
+    if aVisible:
+      if ByPosition = 0:
+        ByPosition = FPosition;
+      fi;
+      result = GroupStatVisible(aCtrl, ByPosition);
+      if aCtrl[1] <> nil:
+        aCtrl[1].Visible = aVisible;
+      else result = false;
+      fi;
+      j = 5;
+    else j = 1;
+    fi;
+    for var i = j..LengthOfArray(aCtrl) do
+      if aCtrl[i] <> nil:
+        aCtrl[i].Visible = aVisible;
+      else result = false;
+      fi;
+    od;
+  end;
+
+
+  #Help `  Метод для отбражения с учетом иерархии
+           Параметр i - номер позиции элемента`;
+  func SetVisibleByOwner(i :integer; always :logical = nil) :logical;
+    var OwnerOpen, OwnerVisible :logical;
+    var own: integer;
+    own = FItems[i, Owner];
+    if own = 0:
+      OwnerOpen = true;
+      OwnerVisible = true;
+    else
+      OwnerOpen = FItems[own, TreeOpen] <> nil;
+      OwnerVisible = FItems[own, TreeVisible] <> nil;
+    fi;
+    if always or (FItems[i, TreeVisible] <> (OwnerVisible and OwnerOpen)):
+      if SetLineVisible(FItems[i,TreeObjAll] as variant[], OwnerVisible and OwnerOpen, i):
+        FItems[i, TreeVisible] = OwnerVisible and OwnerOpen;
+        result = true;
+      fi;
+    fi;
+  end;
+--}} методы для отображения дерева
+
+
+
+--{{ Варианты MAP
+
+  #Help `  Базовый метод MAP для отбражения с учетом иерархии`;
+  func VisibleByOwner(i :integer) :logical;
+    return SetVisibleByOwner(i);
+  end;
+
+  #Help `  Базовый метод MAP для отбражения с учетом иерархии (при инициализации)`;
+  func VisibleByOwnerAlways(i :integer) :logical;
+    return SetVisibleByOwner(i,true);
+  end;
+
+--}} Варианты MAP
+
+--{{ Варианты Next
+
+  #Help `  Базовый метод Next для применения ко всем Child
+           с учетом оптимизации (пропуском ненужных подгрупп)`;
+  func ChildMapNext(var i :integer; iterOwner :integer; Map :func(var aPosition :integer): logical) :logical;
+    i = i + 1;
+    if (i > LengthOfArray(FItems)) or (iterOwner <> FItems[i, Owner]):
+      i = i - 1;
+    else -- Основное действие
+      result = true;
+      if Map = nil: -- просто пробегаем все элементы для нахождения последнего элемента в группе
+        if FItems[i, TreeIsGroup] <> nil:
+          if FItems[i, Childs] = nil:
+            i = ChildMap(@ChildMapNext, nil, i);
+          else -- сразу перейти на последний элемент
+            i = i + FItems[i, Childs];
+          fi;
+        fi;
+      else -- если Map<>nil - применяем Map к каждому элементу
+        if FItems[i, TreeIsGroup] <> nil:
+          i = ChildMap(@ChildMapNext, if(Map(i),Map,nil), i);
+        else
+          Map(i);
+        fi;
+      fi;
+    fi;
+  end;
+
+  #Help `  Базовый метод Next для обязательного применения Map ко всем Child`;
+  func ChildMapForAllNext(var i :integer; iterOwner :integer; Map :func(var aPosition :integer): logical) :logical;
+    i = i + 1;
+    if (i > LengthOfArray(FItems)) or (iterOwner <> FItems[i, Owner]):
+      i = i - 1;
+    else -- Основное действие
+      result = true;
+        Map(i);
+        if FItems[i, TreeIsGroup] <> nil:
+          i = ChildMap(@ChildMapForAllNext, Map, i);
+        fi;
+    fi;
+  end;
+
+  #Help `  метод Next без вызова Map - только для подсчета Childs в группах`;
+  func ChildCountNext(var i :integer; iterOwner :integer; Map :func(var aPosition :integer): logical) :logical;
+    var z :integer;
+    i = i + 1;
+    if (i > LengthOfArray(FItems)) or (iterOwner <> FItems[i, Owner]): -- откат если вышли за конец группы или всего массива
+      i = i - 1; -- на выходе result = false; - закончить перебор
+    else -- Основное действие
+      result = true;
+      if FItems[i, TreeIsGroup] <> nil:
+        z = i;
+        i = ChildMap(@ChildCountNext, nil, i); -- получили последний элемент группы
+        FItems[z, Childs] = i - z;
+      fi;
+    fi;
+  end;
+
+--}} Варианты Next
+
+  #Help `  Базовый "итератор"
+           Применяет метод Map к каждому элементу итератора Next`;
+  func ChildMap( Next :func (var aPosition :integer; iterOwner :integer; Map  :func (var aPosition :integer): logical): logical;
+                 Map  :func (var aPosition :integer): logical; -- действие над каждой итерацией
+                 iterOwner :integer = FPosition
+                ): integer;
+    result = iterOwner;
+    if Next = nil:
+      Next = @ChildMapNext;
+    fi;
+    while Next(result, iterOwner, Map) do od;
+  end;
+
+
+inobject private
+--{{ inobject private
+
+    func GetIsGroup :logical;
+      return Item[TreeIsGroup]<>nil;
+    end;
+    proc SetIsGroup(Value :logical);
+      Item[TreeIsGroup] = Value;
+    end;
+
+    func GetIsSel :logical;
+      return Item[TreeIsSel]<>nil or (isGroup and Item[ChildsSel] = Item[Childs]);
+    end;
+    proc SetIsSel(Value :logical);
+      Item[TreeIsSel] = Value;
+    end;
+
+    func GetTreeImage :integer;
+      result = item[TreeImage];
+      if result < 1:
+        result = ImageDefCurrent;
+      fi;
+    end;
+    proc SetTreeImage(Value :integer);
+      item[TreeImage] = Value;
+    end;
+
+
+    func GetImageFont :string;
+      return ImageDef[GetTreeImage, ImageDefFont];
+    end;
+    proc SetImageFont(Value :string);
+      ImageDef[GetTreeImage, ImageDefFont] = Value;
+    end;
+
+    func GetImageSelect :string;
+      return ImageDef[GetTreeImage, ImageDefSelect];
+    end;
+    proc SetImageSelect(Value :string);
+      ImageDef[GetTreeImage, ImageDefSelect] = Value;
+    end;
+
+
+    func GetImageCloseGroup :string;
+      return ImageDef[GetTreeImage, ImageDefCloseGroup];
+    end;
+    proc SetImageCloseGroup(Value :string);
+      #warning ' Казунин - меняем для всех а надо делать клона в ImageDef?';
+-- --делаем клон  - надо метод поиска для избежания дублей
+--      ImageDef[LengthOfArray(ImageDef)+1] = ImageDef[aDef];
+--      aDef = LengthOfArray(ImageDef);
+--      items[FPosition, TreeImage] = aDef;
+      ImageDef[GetTreeImage, ImageDefCloseGroup] = Value;
+    end;
+
+    func GetImageCloseGroupNil :string;
+      return ImageDef[GetTreeImage, ImageDefCloseGroupNil];
+    end;
+    proc SetImageCloseGroupNil(Value :string);
+      ImageDef[GetTreeImage, ImageDefCloseGroupNil] = Value;
+    end;
+
+    func GetImageOpenGroup :string;
+      return ImageDef[GetTreeImage, ImageDefOpenGroup];
+    end;
+    proc SetImageOpenGroup(Value :string);
+      ImageDef[GetTreeImage, ImageDefOpenGroup] = Value;
+    end;
+
+    func GetImageElem :string;
+      return ImageDef[GetTreeImage, ImageDefElem];
+    end;
+    proc SetImageElem(Value :string);
+      ImageDef[GetTreeImage, ImageDefElem] = Value;
+    end;
+
+    func GetImageElemFont :string;
+      return ImageDef[GetTreeImage, ImageDefElemFont];
+    end;
+    proc SetImageElemFont(Value :string);
+      ImageDef[GetTreeImage, ImageDefElemFont] = Value;
+    end;
+
+    func GetImageElemFontSize :integer;
+      return ImageDef[GetTreeImage, ImageDefElemFontSize];
+    end;
+    proc SetImageElemFontSize(Value :integer);
+      ImageDef[GetTreeImage, ImageDefElemFontSize] = Value;
+    end;
+
+    func GetImageElemFontColor :integer;
+      return ImageDef[GetTreeImage, ImageDefElemFontColor];
+    end;
+    proc SetImageElemFontColor(Value :integer);
+      ImageDef[GetTreeImage, ImageDefElemFontColor] = Value;
+    end;
+
+    func GetImageElemFontBold :logical;
+      return ImageDef[GetTreeImage, ImageDefElemFontBold];
+    end;
+    proc SetImageElemFontBold(Value :logical);
+      ImageDef[GetTreeImage, ImageDefElemFontBold] = Value;
+    end;
+
+    func GetImageElemFontItalic :logical;
+      return ImageDef[GetTreeImage, ImageDefElemFontItalic];
+    end;
+    proc SetImageElemFontItalic(Value :logical);
+      ImageDef[GetTreeImage, ImageDefElemFontItalic] = Value;
+    end;
+
+    func GetTreeFont :variant[];
+      result = item[TreeFont] as variant[];
+    end;
+    proc SetTreeFont(Value :variant[]);
+      item[TreeFont] = Value;
+    end;
+
+    func GetFontName :string;
+      return items3[FPosition, TreeFont, TreeFontName];
+    end;
+    proc SetFontName(Value :string);
+      items3[FPosition, TreeFont, TreeFontName] = Value;
+    end;
+
+    func GetFontSize :integer;
+      return items3[FPosition, TreeFont, TreeFontSize];
+    end;
+    proc SetFontSize(Value :integer);
+      items3[FPosition, TreeFont, TreeFontSize] = Value;
+    end;
+
+    func GetFontColor :integer;
+      return items3[FPosition, TreeFont, TreeFontColor];
+    end;
+    proc SetFontColor(Value :integer);
+      items3[FPosition, TreeFont, TreeFontColor] = Value;
+    end;
+
+    func GetFontBold :logical;
+      return items3[FPosition, TreeFont, TreeFontBold];
+    end;
+    proc SetFontBold(Value :logical);
+      items3[FPosition, TreeFont, TreeFontBold] = Value;
+    end;
+
+    func GetFontItalic :logical;
+      return items3[FPosition, TreeFont, TreeFontItalic];
+    end;
+    proc SetFontItalic(Value :logical);
+      items3[FPosition, TreeFont, TreeFontItalic] = Value;
+    end;
+
+
+--  var FontGroup          :variant[] get @GetTreeFontGroup      set @SetTreeFontGroup ;
+--  var FontGroupName      :string  get @GetFontGroupName             set @SetFontGroupName ;
+--  var FontGroupSize      :integer get @GetFontGroupSize             set @SetFontGroupSize ;
+--  var FontGroupColor     :integer get @GetFontGroupColor            set @SetFontGroupColor;
+--  var FontGroupBold      :logical get @GetFontGroupBold             set @SetFontGroupBold ;
+--  var FontGroupItalic    :logical get @GetFontGroupItalic           set @SetFontGroupItalic;
+
+
+    func GetTreeFontGroup :variant[];
+      result = item[TreeFontGroup] as variant[];
+    end;
+    proc SetTreeFontGroup(Value :variant[]);
+      item[TreeFontGroup] = Value;
+    end;
+
+    func GetFontGroupName :string;
+      return items3[FPosition, TreeFontGroup, TreeFontName];
+    end;
+    proc SetFontGroupName(Value :string);
+      items3[FPosition, TreeFontGroup, TreeFontName] = Value;
+    end;
+
+    func GetFontGroupSize :integer;
+      return items3[FPosition, TreeFontGroup, TreeFontSize];
+    end;
+    proc SetFontGroupSize(Value :integer);
+      items3[FPosition, TreeFontGroup, TreeFontSize] = Value;
+    end;
+
+    func GetFontGroupColor :integer;
+      return items3[FPosition, TreeFontGroup, TreeFontColor];
+    end;
+    proc SetFontGroupColor(Value :integer);
+      items3[FPosition, TreeFontGroup, TreeFontColor] = Value;
+    end;
+
+    func GetFontGroupBold :logical;
+      return items3[FPosition, TreeFontGroup, TreeFontBold];
+    end;
+    proc SetFontGroupBold(Value :logical);
+      items3[FPosition, TreeFontGroup, TreeFontBold] = Value;
+    end;
+
+    func GetFontGroupItalic :logical;
+      return items3[FPosition, TreeFontGroup, TreeFontItalic];
+    end;
+    proc SetFontGroupItalic(Value :logical);
+      items3[FPosition, TreeFontGroup, TreeFontItalic] = Value;
+    end;
+
+    func GetObj :Object;
+      return items3[FPosition, TreeObjAll, 1];
+    end;
+    proc SetObj(Value :Object);
+      items3[FPosition, TreeObjAll, 1] = Value;
+    end;
+
+    func GetObjAll :Object[];
+      return item[TreeObjAll] as Object[];
+    end;
+    proc SetObjAll(Value :Object[]);
+      item[TreeObjAll] = Value;
+    end;
+
+    func OwnerBy(aPosition :integer = nil) :integer;
+      if aPosition <> nil:
+        return Fitems[aPosition, Owner];
+      fi;
+      return item[Owner];
+    end;
+
+    func GetOpen :logical;
+      return item[TreeOpen]<>nil;
+    end;
+    proc SetOpen(Value :logical);
+      item[TreeOpen] = Value;
+    end;
+
+    func GetVisible :logical;
+      return item[TreeVisible]<>nil;
+    end;
+    proc SetVisible(Value :logical);
+      item[TreeVisible] = Value;
+    end;
+
+
+  #Help `  Преобразует строковый массив [Code :string, Name_1 :string, Name_2 :string,...]
+           в данные по соответствию структуре tree`;
+    func ItemBy(aValues :variant[]) :variant[];
+      var tmpS, CurrentPath, CurrentElem :string;
+      var CurrentIsGroup :logical;
+      var CurrentLevel :integer;
+      tmpS = aValues[1];
+      CurrentIsGroup  = tmpS[Length(tmpS)] = ls;
+      CurrentLevel    = WordsCount(tmpS, ls) - 1; -- уровень группы к которой относится текущий элемент/группа
+      CurrentPath     = ExtractWords(tmpS, 1, CurrentLevel, ls);
+      CurrentElem     = ExtractWord(tmpS, CurrentLevel+1, ls);
+      result[Level  ] = CurrentLevel;
+      result[TreeIsGroup] = CurrentIsGroup;
+      result[Order  ] = tmpS;
+      if CurrentIsGroup:
+        result[Code] = SubStr(tmpS,1,Length(tmpS)-1);
+      else
+        result[Code] = tmpS;
+      fi;
+
+      result[CodeName] = aValues[2];
+      result[Name    ] = aValues[3];
+      result[Path    ] = CurrentPath;
+      result[Elem    ] = CurrentElem;
+      if result[CodeName] = nil:  -- нет спец названия группы
+        result[CodeName] = CurrentElem; -- берем текущий элемент
+      fi;
+      if result[Name]    = nil:  -- нет спец названия группы
+        result[Name]    = result[Code]; -- берем текущий код
+      fi;
+      for var j = 4..LengthOfArray(aValues) do -- дописываем дополнительные колонки после первых трех обязательных
+        result[TreeAdd+j-4] = aValues[j];
+      od;
+    end;
+
+
+    var Stack :integer[]; -- Временный стек узлов дерева
+
+      proc PUSH(v :integer); -- добавление элемента на вершину стека;
+        Stack[LengthOfArray(Stack)+1] = v;
+      end;
+      func POP :integer; -- извлечение элемента с вершины стека.
+        result = Stack[LengthOfArray(Stack)];
+        DeleteFromArray(Stack, LengthOfArray(Stack));
+      end;
+      func LAST :integer; -- чтение элемента с вершины стека.
+        result = LengthOfArray(Stack);
+        if result > 0:
+          result = Stack[result];
+        fi;
+      end;
+      func DEEP :integer; -- глубина стека
+        LengthOfArray(Stack);
+      end;
+--}} inobject private
+
+end

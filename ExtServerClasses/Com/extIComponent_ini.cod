@@ -1,0 +1,35 @@
+extends Com.IComponent;
+--Import Com.Consts, Com.Lib;
+
+--линки на расширения
+--Link:Com.IComponent  -- Базовый класс
+--Link:BudgBiz.Com.extIComponent  -- BudgBiz(это текущее расширение) - базовое расширение
+
+inclass public
+  #Help `Определяет принадлежность объека к текущему классу`;
+  func isSelfClass Synonym isTSelf (aObject :Object) :Logical ;
+    Result = aObject.InheritsFrom(self);
+  end;
+
+  var iniStack :Stack := Stack.Create;
+
+--      proc PUSH(v :variant); -- добавление элемента на вершину стека;
+--      func POP :variant; -- извлечение элемента с вершины стека.
+--      func LAST :variant; -- чтение элемента с вершины стека.
+--      func DEEP :integer; -- глубина стека
+
+
+
+
+inclass private
+
+
+inobject public
+
+  proc InitDefaultProcessing;
+
+  end;
+
+inobject private
+
+end

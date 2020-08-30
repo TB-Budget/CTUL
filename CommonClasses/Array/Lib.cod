@@ -1,0 +1,670 @@
+class "Общие методы для массивов";
+
+inclass public
+--{{ inclass public
+
+  var WebSide :Boolean:= ProcessInfo.Side <> 0;
+
+  -- типы AsArray - для прямого доступа к элементам массива (работает без преведения типа)
+  type AsArrayI = Integer[];
+  type AsArrayS = String[];
+  type AsArrayN = Numeric[];
+  type AsArrayL = Logical[];
+  type AsArrayD = Date[];
+  type AsArrayV = Variant[];
+
+  type AsArray2I = Integer[2];
+  type AsArray2S = String[2];
+  type AsArray2N = Numeric[2];
+  type AsArray2L = Logical[2];
+  type AsArray2D = Date[2];
+  type AsArray2V = Variant[2];
+
+  type tEnumCondition = func (var aPosition :integer; var EnumNextParam :variant[]; var aPublic :variant[]): logical;
+  type tEnumProc      = proc (var aPosition :integer; var EnumNextParam :variant[]; var aPublic :variant[]);
+  type tEnumNext      = func (var aPosition :integer; var aNext :function ; var EnumNextParam :variant[]; aProc :tEnumProc; aCondition :tEnumCondition; var aPublic :variant[]; var aEnum :function): logical;
+  type tEnum          = func (var aPosition :integer; var aNext :tEnumNext; var EnumNextParam :variant[2]; aProc :tEnumProc; aCondition :tEnumCondition; var aPublic :variant[]): variant;
+
+  #Help `массив с одним непроинициализированным элементом [nil]`;
+  var NullArray: Variant[]:= GetNullArray;
+
+  #Help `Возвращает массив непроинициализированных элементов c длиной = lengthNullArray
+         сравнение (nil или 0 или "" in GetNullArray) всегда false, хотя [nil]=GetNullArray вернет true
+         сравнение (nil или 0 или "" in [nil]) всегда true`;
+  func GetNullArray(lengthNullArray: integer = 1): Variant[];
+    Result[lengthNullArray + 1]=nil;-- инициализируем единственный элемент массива
+    DeleteFromArray(Result, lengthNullArray + 1); -- удаляем этот элемент
+    -- длина массива теперь = lengthNullArray
+  end;
+
+  #Help `Функция проверяет проинициализирован ли элемент массива
+         т.е. присвоилось значение (включая nil) в элемент массива InArray[index] или нет`;
+  func IsNull(var InArray: Variant[]; col: integer = 1; row: integer = 0): Logical;
+    if row = 0: -- одномерный массив
+      Result = NextArrItem(InArray, col - 1) <> col;
+    else
+      Result = NextArrItem(AsArrayV(InArray[row]), col - 1) <> col;
+    fi;
+  end;
+
+
+  proc swap(var v1: variant; var v2: variant);
+    var v3: Variant;
+      if v1 = nil and v2 <> nil: v1 = v2; v2 = nil;
+      elsif v2 = nil and v1 <> nil: v2 = v1; v1 = nil;
+      elsif v1 <> nil and v2 <> nil: v3 = v1; v1 = v2; v2 = v3;
+      fi;
+  end;
+
+
+  #Help `  инвентирует одномерный массив(меняет первый с последним, второй с предпоследним...)`;
+  proc InvertArray(var InArray: Variant[]);
+    var i1, i2: Integer;
+      i2 = LengthOfArray(InArray);
+      if i2 > 1:
+        i1 = 1;
+        While i1 < i2 do
+          swap(InArray[i1], InArray[i2]);
+          i1 = i1 + 1;
+          i2 = i2 - 1;
+        od;
+      fi;
+  end;
+
+
+
+    #Help `  Вычислит очередной Position методом деления пополам для отрезка [aFrom, aTo]`;
+    func NextHalf(var aPosition :integer; aFrom, aTo :integer): logical;
+      if aFrom < aTo:
+        result = true;
+        if aFrom + 1 = aTo:
+          aPosition = aTo;
+        elsif aPosition + 2 = aTo:
+          aPosition = aTo - 1;
+        else
+          aPosition = int(aFrom+(aTo-aFrom)/2);
+        fi;
+      fi;
+    end;
+
+
+    #Help `  Базовый "итератор для массива //// дописать Help !!!!!
+             aEnumNext с двумя параметрами- вычислит очередной aCurrent
+               aEnumCache     :variant[] - общее адресное пространство
+               aEnumNextParam :variant[]
+
+             и применит для него aEnumProc с двумя параметрами
+               aEnumCache     :variant[] - общее адресное пространство
+               aEnumProcParam :variant[]`;
+    func Enum(var aPosition :integer = nil;
+              aNext :tEnumNext = nil;
+              var aEnumParam :variant[2] = nil; -- [[NextParam],[ProcParam],[ConditionParam]]
+              aProc :tEnumProc = nil;
+              aCondition :tEnumCondition = nil;
+              var aPublic :variant[] = nil
+              ) :variant;
+
+
+      while aNext(aPosition,aNext,aEnumParam[1], aProc, aCondition, aPublic, @Enum) do
+        if aProc <> nil:
+          if aCondition = nil or aCondition(aPosition,aEnumParam[3],aPublic):
+            aProc(aPosition, aEnumParam[2], aPublic);
+          fi;
+        fi;
+      od;
+    end;
+
+
+
+    func ArrayDim2_GetItems3(aArrayDim2: variant[2]; aRow, aColumn, aIter :integer) :variant;
+      result = AsArrayV(aArrayDim2[aRow, aColumn])[aIter];
+    end;
+    proc ArrayDim2_SetItems3(var aArrayDim2: variant[2]; aRow, aColumn, aIter :integer; aValue :variant);
+      PutInVariantAsArrayV(aArrayDim2[aRow, aColumn], aIter, aValue);
+    end;
+
+    proc PutInVariantAsArrayV(var aArray :variant; aIter :integer; aValue :variant);
+      if aArray = nil:
+        aArray = aArray as variant[];
+      fi;
+      AsArrayV(aArray)[aIter] = aValue;
+    end;
+
+    func ArrayDim2_GetColumn(aArrayDim2 :variant[2]; aColumn :integer) :variant[];
+    var p: integer;
+      p = NextArrItem(aArrayDim2, p);
+      While p > 0 do
+        result[p] = aArrayDim2[p, aColumn];
+        p = NextArrItem(aArrayDim2, p);
+      od;
+    end;
+    proc ArrayDim2_SetColumn(var aArrayDim2 :variant[2]; aColumn :integer; aValue :variant[]);
+      for var i = 1..LengthOfArray(aValue) do
+       if LengthOfArray(aArrayDim2[i]) < aColumn or aArrayDim2[i, aColumn] <> aValue[i]:
+         aArrayDim2[i, aColumn] = aValue[i];
+       fi;
+      od;
+      var p: integer = NextArrItem(aArrayDim2, LengthOfArray(aValue));
+      While p > 0 do
+        aArrayDim2[p, aColumn] = nil;
+        p = NextArrItem(aArrayDim2, p);
+      od;
+    end;
+
+  #Help ` Преобразует одномерный массив aValue в двумерный,
+          где массив aValue - будет колонкой с номером aColumn`;
+    func TranspArrayDim1(aValue :variant[]; aColumn :integer = 1) :variant[2];
+      ArrayDim2_SetColumn(result, aColumn, aValue);
+    end;
+
+
+
+  #Help ` Преобразует результат фильтра в данные
+          SelectCols :integer[] - список колонок для выборки
+          если SelectCols пустой - берутся все колонки
+        `;
+  func ArrayDim2_SelectByFilter(aArrayDim2 :variant[2]; FilterResult: logical[]; SelectCols: integer[] = nil): variant[2];
+  var i, z, col :integer;
+    i = NextArrItem(FilterResult, i);
+    while i>0 do
+      z = z + 1;
+      if LengthOfArray(SelectCols) > 0:
+        col = 0;
+        for var j = 1..LengthOfArray(SelectCols) do
+          col = col + 1;
+          if SelectCols[j] > 0:
+            Result[z, col] = aArrayDim2[i, SelectCols[j]];
+          fi;
+        od;
+      else
+        Result[z] = aArrayDim2[i];
+      fi;
+      i = NextArrItem(FilterResult, i);
+    od;
+  end;
+
+
+  #Help ` Результат - логический фильтр с номерами элементов
+          от aFrom (включительно) до aTo (включительно)
+          Пример: CreateFilterFromTo(2,4) = [false,true,true,true]`;
+  func CreateFilterFromTo(aFrom, aTo :integer) :logical[];
+    for var j = aFrom..aTo do
+      Result[j] = true;
+    od;
+  end;
+
+  func FilterOr(a1 :logical[]; a2 :logical[]): logical[]; -- обаботка '|' -  собираем из 2х разряженных массивов итоговый из true
+    var a1i, a2i :integer;
+    a1i = NextArrItem(a1, a1i);
+    a2i = NextArrItem(a2, a2i);
+    while a1i > 0 or a2i > 0 do
+      while a1i > 0 and (a2i<0 or a1i <= a2i) do
+        if a1[a1i]:
+          result[a1i] = true;
+        fi;
+        a1i = NextArrItem(a1, a1i);
+      od;
+      while a2i > 0 and (a1i<0 or a2i <= a1i) do
+        if a2[a2i]:
+          result[a2i] = true;
+        fi;
+        a2i = NextArrItem(a2, a2i);
+      od;
+    od;
+  end;
+
+  func FilterAnd(a1 :logical[]; a2 :logical[]): logical[]; -- обаботка '&' -  собираем из 2х разряженных массивов итоговый из true
+    var a1i :integer;
+    a1i = NextArrItem(a1, a1i);
+    while a1i > 0 do
+      if a1[a1i] and a2[a1i]:
+        result[a1i] = true;
+      fi;
+      a1i = NextArrItem(a1, a1i);
+    od;
+  end;
+
+  func FilterAndNot(a1 :logical[]; a2 :logical[]): logical[]; -- обаботка '~' -  собираем из 2х разряженных массивов итоговый из true
+    var a1i :integer;
+    a1i = NextArrItem(a1, a1i);
+    while a1i > 0 do
+      if a1[a1i] and not a2[a1i]:
+        result[a1i] = true;
+      fi;
+      a1i = NextArrItem(a1, a1i);
+    od;
+  end;
+
+  func FilterNot(a1 :logical[]): logical[]; -- обаботка '-' -  собираем из 2х разряженных массивов итоговый из true
+    for var j = 1..LengthOfArray(a1) do
+      if not a1[j]:
+        result[j] = true;
+      fi;
+    od;
+  end;
+
+  #Help ` Применяет к каждой строчке aArrayDim2 с номером из FilterResult
+          метод ExecProc(var Row :variant[])
+          где Row - строка из aArrayDim2 доступная на редактирование
+        `;
+  proc ArrayDim2_ExecProcByFilter(var aArrayDim2 :variant[2]; FilterResult: logical[]; ExecProc :proc(var Row :variant[]));
+  var i :integer;
+    if ExecProc = nil:
+      return;
+    fi;
+    i = NextArrItem(FilterResult, i);
+    while i>0 do
+      ExecProc(aArrayDim2[i]);
+      i = NextArrItem(FilterResult, i);
+    od;
+  end;
+
+-------------  пример кода индексной сортировки ------------
+
+  #Help `  метод test, не используя сортировку, пересобирает массив TestArray несколько раз
+           - так как если бы массив TestArray был отсортирован по 2, 3, 1 столбцам
+
+           Недостатки:
+             1. Невозможно реализовать на одномерном массиве.
+             2. На больших массивах TestArray начинают тормозить методы:
+                 IndexSortArray - не сортируя исходный массив возвращяет номера строк, если бы была сортировка
+                 SetIndexArray  - пересобирает исходный массив по новому списку номеров строк
+                 В обоих случаях данный пример вынужденно делает локальную копию исходного массива
+             3. На двумерном массиве требуется выделить колонку под индекс
+
+           Решение:
+             На уровне Kernel реализовать методы IndexSortArray и SetIndexArray
+        `;
+
+  var TestArray :variant[2]:=
+    [[0, 'a', 'd']
+    ,[0, 'b', 'c']
+    ,[0, 'd', 'b']
+    ,[0, 'c', 'a']];
+
+
+  var IndexColumn :integer = 1; -- в столбце с этим номером порядковые номера строк
+
+  #Help `  Проставляем порядковые номера строк в стобце = IndexColumn`;
+  func SetIndexColumn :integer[];
+    for var i = 1..LengthOfArray(TestArray) do
+      TestArray[i, IndexColumn] = i;
+      Result[i] = i;
+    od;
+  end;
+
+
+  #Help `  Результат вернет новое состояние(после сортировки) столбца с номером = IndexColumn
+           При выполнении вынужден делать ненужноу копию массива`;
+  func IndexSortArray(Elements: Variant[2]; Index: Integer[] = nil) :integer[];
+    SortArray(Elements, Index); -- делает ненужную локальную копию массива Elements
+                                --(при сортировке происходит копирование т.к Elements не var)
+    for var i = 1..LengthOfArray(Elements) do
+      result[i] = Elements[i, IndexColumn];
+    od;
+  end;
+
+  #Help `  Пересобираем массив Elements по новому списку номеров элементов
+           При выполнении вынужден делать ненужноу копию массива`;
+
+  proc SetIndexArray(var Elements: Variant[]; NewIndex: Integer[]; var aCurrentIndex :integer[]);
+  var TempArray :variant[];
+    for var i = 1..LengthOfArray(NewIndex) do
+     if NewIndex[i] > 0:-- ! можно неограниченно дублировать элементы, если в NewIndex есть дубли номеров строк !
+       TempArray[NewIndex[i]] = Elements[aCurrentIndex[i]]; --  делает ненужную локальную копию массива Elements
+     fi;
+    od;
+    aCurrentIndex = NewIndex;
+    Elements = TempArray;
+  end;
+
+
+  proc test;
+  var BaseIndex, idxCol2, idxCol3 ,CurrentIndex:integer[];
+--  текущие значения
+--    [0,a,d]
+--    [0,b,c]
+--    [0,d,b]
+--    [0,c,a]
+
+    BaseIndex = SetIndexColumn; -- Инициализируем и запоминаем базовый индекс
+--  новые значения
+--    [1,a,d]
+--    [2,b,c]
+--    [3,d,b]
+--    [4,c,a]
+
+    idxCol2 = IndexSortArray(TestArray, [2]); -- Запоминаем индекс по 2 столбцу (номера строк после сортировки)
+    idxCol3 = IndexSortArray(TestArray, [3]); -- Запоминаем индекс по 3 столбцу (номера строк после сортировки)
+
+    CurrentIndex = BaseIndex;
+    SetIndexArray(TestArray ,idxCol2, CurrentIndex); -- Пересобираем массив в состояние после сортировки по 2 стобцу
+--  новые значения
+--    [1,a,d]
+--    [2,b,c]
+--    [4,c,a]
+--    [3,d,b]
+
+    SetIndexArray(TestArray ,idxCol3, CurrentIndex); -- Пересобираем массив в состояние после сортировки по 3 стобцу
+--  новые значения
+--    [4,c,a]
+--    [3,d,b]
+--    [2,b,c]
+--    [1,a,d]
+
+    SetIndexArray(TestArray ,BaseIndex, CurrentIndex); -- Пересобираем массив в состояние после сортировки по 1 стобцу
+--  новые значения
+--    [1,a,d]
+--    [2,b,c]
+--    [3,d,b]
+--    [4,c,a]
+
+  end;
+
+
+
+  func  RightMostNotNull (var InArray: Variant[]; first: Integer = 0; limit: Integer[] = nil; var index: integer[] = nil): integer;
+    if LengthOfArray(index) <> 0: -- работаем не в одномерном массиве
+      return RightMost(InArray, first, NullArray, limit, index);
+    fi;
+    if not CheckLimit(InArray, limit) :
+      Return 0;
+    fi;
+    if first < 1:
+      first = limit[1]; -- проверяем с начала вправо
+    fi;
+    if first < limit[1] or first > limit[2]:
+      Return 0;
+    fi;
+    result = NextArrItem(InArray, first - 1); -- за один раз ищем первый инициализированный
+    if result > limit[2] or result<0:
+      result = limit[2];
+    else
+      result = result-1;
+    fi;
+  end;
+  #Help `  Находим границы группы включительно, все элементы которого из InValue
+           При AsLeft=true - ищет от позиции first-1 в лево крйнюю левую позицию группы элементов состоящих из некоторых элементов массива InValue
+           При AsLeft=false - ищет от позиции first+1 в право крйнюю правую позицию группы элементов состоящих из некоторых элементов массива InValue
+           при пустом InValue, InValue = значению InArray[first]
+           InValue = NullArray, ищет  непроинициализированный элемент
+           limit = массив из 2х элементов, задающий границы диапазона поиска
+           index = массив с 1 элементом = номеру колонки при двухмерном массиве InArray, в этой колонке ведется поиск
+           Возвращает 0, если в диапазоне номеров с index[1] по index[2] нет ниодного элемента со сначением из InValue[]`;
+  func Most synonym Крайний (AsLeft: Logical; var InArray: Variant[]; first: Integer = 0; var InValue: Variant[] = nil; limit: Integer[] = nil; var index: integer[] = nil): integer;
+  var delta, last, x: integer;
+  var NullInValue: Logical;
+    NullInValue = (LengthOfArray(InValue)=1 and IsNull(InValue)); --более быстрая проверка чем IdentityArray(InValue, NullArray)
+    if not AsLeft and NullInValue and LengthOfArray(index)=0: -- InArray-одномерный массив
+      return RightMostNotNull(InArray, first, limit, index);
+    fi;
+
+    if not CheckLimit(InArray, limit) :
+      Return 0;
+    fi;
+
+    if AsLeft:
+      delta = 1;
+      last = limit[1] - 1;
+      if first < 1:
+        first = limit[2]; -- проверяем с конца влево
+      fi;
+    else
+      delta = -1;
+      last = limit[2] + 1;
+      if first < 1:
+        first = limit[1]; -- проверяем с начала вправо
+      fi;
+    fi;
+
+    if first < limit[1] or first > limit[2]:
+      Return 0;
+    fi;
+
+    -- проверка на первое вхождение
+    if LengthOfArray(InValue) = 0:
+      if LengthOfArray(index) = 0:
+        InValue[1] = InArray[first];
+      else
+        InValue[1] = AsArray2V(InArray)[first, index[1]];
+      fi;
+    else
+      if NullInValue:
+        if AsLeft or LengthOfArray(index) <> 0: -- ищем справа налево (или снизу вверх для двухмерного)
+          if not IsNull(InArray, first, if(LengthOfArray(index) = 1,index[1],0)):
+            Return 0; -- первый же элемент проинициализирован - границы нет
+--            Return first;
+          fi;
+--        else уже сработал RightMostNotNull -- работаем в одномерном массиве слева направо
+        fi;
+      else
+        if LengthOfArray(index) = 0: -- работаем в одномерном массиве
+          if not(InArray[first] in InValue):
+            Return 0;
+          fi;
+        else
+          if not(AsArray2V(InArray)[first, index[1]] in InValue):
+            Return 0;
+          fi;
+        fi;
+      fi;
+    fi;
+    first = first - delta;
+    if LengthOfArray(index) = 0: -- работаем в одномерном массиве
+      if NullInValue:
+      -- остался только вариант когда AsLeft=true
+        while first > last and IsNull(InArray, first) do
+        -- ищем уменьшая по одной с конца
+        -- и методом половинного деления с начала
+          first = first - delta;
+          x = last+int((first-last)/2);
+          if last<x and x<first:
+            result = NextArrItem(InArray, x-1);
+            if result<0 or result>first: -- можно пропустить от first до x - там null
+              first = x - delta;
+            elsif result=first:
+              return first + delta; -- возвращаем последнее верное значение
+            elsif result<first: -- нашли инициализированное значение - сдвигаем границу проверки на него
+              last=result;
+            fi;
+          fi;
+        end;
+      else
+        while first <> last and InArray[first] in InValue do
+          first = first - delta;
+        end;
+      fi;
+    elsif LengthOfArray(index) = 1: -- работаем в 2х мерном массиве
+      if NullInValue:
+        while first <> last and IsNull(InArray, first, index[1]) do
+          first = first - delta;
+        end;
+      else
+        while first <> last and AsArray2V(InArray)[first, index[1]] in InValue do
+          first = first - delta;
+        end;
+      fi;
+    fi;
+    Return first + delta;
+  end;
+
+  func LeftMost synonym КрайнийСлева (var InArray: Variant[]; first: Integer = 0; var InValue: Variant[] = nil; limit: Integer[] = nil; var index: integer[] = nil): integer;
+    Return Most(true, InArray, first, InValue, limit, index);
+  end;
+
+  func RightMost synonym КрайнийСправа (var InArray: Variant[]; first: Integer = 0; var InValue: Variant[] = nil; limit: Integer[] = nil; var index: integer[] = nil): integer;
+    Return Most(false, InArray, first, InValue, limit, index);
+  end;
+
+
+  #Help `  Ищет значение ForSearch в отсортированном массиве InArray или в его отсортированном столбце
+           если InArray неявно двухмерный, тогда SortColumn[1] содержит номер столбца для поиска
+           limit возвращает результат поиска как границу повторяющихся значений ForSearch включая концы
+            если не находит, то limit[1] = limit[2] = номеру позиции куда надо вставить ForSearch не нарушая порядка сортировки
+            limitPad <0 - ищем левую границу,  limitPad >0 - ищем правую границу,  limitPad =0 - ищем левую и правую границу повторений,
+            SortColumn - массив с номером столбца, в котором ищем (только для 2х мерного массива InArray)
+            asc = true - массив InArray (или столбец в нем) отсортирован в порядке возрастания, иначе - убывания
+            limit = массив из 2х элементов, задающий границы диапазона поиска
+            ForSearch = искомый элемент`;
+  func SearchNearestsInArray synonym ПоискБлижайшихВМассиве (var InArray: Variant[]; ForSearch: Variant; var limit: Integer[] = nil; asc: logical = true; var SortColumn: Integer[] = nil; limitPad: Integer = 0): Logical;
+  var first, last, Position: integer;
+  var val: variant;
+    if not CheckLimit(InArray, limit) :
+      Return false;
+    fi;
+
+    if limit[1] = limit[2]: -- диапазон из 1 элемента
+      result = (lengthOfArray(SortColumn) = 0 and ForSearch = InArray[limit[1]]) or
+               (lengthOfArray(SortColumn) = 1 and ForSearch = AsArray2V(InArray)[limit[1], SortColumn[1]]);
+      Return;
+    elsif limit[1] = 1 and limit[2] = LengthOfArray(InArray) and asc: -- сортировка всего массива по возрастанию
+      if SearchNearestInArray(InArray, ForSearch, first, SortColumn): -- нашли нативным поиском
+        limit = [if(limitPad <= 0, LeftMost(InArray, first,, limit, SortColumn), 0),
+                 if(limitPad >= 0, RightMost(InArray, first,, limit, SortColumn), 0)
+                ];
+        Return true;
+      else -- не нашли
+        limit = [first,first];
+        Return false;
+      fi;
+    fi;
+    first = limit[1];
+    last = limit[2];
+    while (first < last) do
+      Position = first + div(last - first, 2);
+      if lengthOfArray(SortColumn) = 0:
+        val = InArray[Position];
+      else
+        val = AsArray2V(InArray)[Position, SortColumn[1]];
+      fi;
+      if ForSearch = val:
+        limit = [if(limitPad <= 0, LeftMost(InArray, Position,, limit, SortColumn), 0),
+                 if(limitPad >= 0, RightMost(InArray, Position,, limit, SortColumn), 0)
+                 ];
+        Return true;
+      elsif (asc and (ForSearch < val)) or (not asc and (ForSearch > val)):
+        last = Position - 1;
+      else
+        first = Position + 1;
+      fi;
+    od;
+    limit = [first,first];
+    if lengthOfArray(SortColumn) = 0:
+      Return ForSearch = InArray[first];
+    else
+      Return ForSearch = AsArray2V(InArray)[first, SortColumn[1]];
+    fi;
+  end;
+
+  #Help `  поиск диапазона номеров строк со значениями в столбцах SortColumn равными элементам из ForSearch
+           SortColumn - массив с номерами столбцов, знак перед номером определяет сортировку для куска столбца
+           limit = массив из 2х элементов, задающий границы диапазона поиска (куска столбца)`;
+  func SearchNearestsInArray2 synonym ПоискБлижайшихВМассиве2 (var InArray: Variant[2]; ForSearch: Variant[]; var limit: Integer[] = nil; var SortColumn: Integer[] = [1]): Logical;
+  var SortColumnAbs: integer[];
+  var j, last: integer;
+
+    if LengthOfArray(ForSearch) = 0:
+      limit = nil;
+      Return false;
+    fi;
+
+    for j = 1..LengthOfArray(ForSearch) do
+      if SortColumn[j] = 0: -- расчитываем номера отсортированных столбцов как порядковые (по умолчанию) от последнего инициализированного
+                            -- т.е. SortColumn можно не заполнять, если искомое в первых столбцах InArray и столбцы отсортированны по возрастанию
+        last = last + 1;
+        SortColumn[j] = last;
+        SortColumnAbs[j] = last;
+      else
+        if SortColumn[j] > 0:
+          SortColumnAbs[j] = SortColumn[j];
+        else
+          SortColumnAbs[j] = -SortColumn[j];
+        fi;
+        last = SortColumnAbs[j];
+      fi;
+    od;
+    j = 1;
+    while j <= LengthOfArray(ForSearch) and  SearchNearestsInArray(InArray, ForSearch[j], limit, SortColumn[j]>0, [SortColumnAbs[j]]) do
+      j = j + 1;
+    od;
+
+    Result = j > LengthOfArray(ForSearch);
+
+  end;
+
+  func DateInLimit(DateIn: date; Limit: date[]):logical;
+    if Limit[1] = nil:
+      return DateIn<=Limit[2];
+    elsif Limit[2] = nil:
+      return DateIn>=Limit[1];
+    else
+      return DateIn>=Limit[1] and DateIn<=Limit[2];
+    fi;
+  end;
+
+  func DateinLimits(DateIn: date; Limit: date[2]): logical;
+  var j, ln: integer;
+    ln = LengthOfArray(Limit);
+    j = 1;
+    while j<=ln and DateInLimit(DateIn, Limit[j]) do
+      j = j + 1;
+    od;
+    result = (j>ln);
+  end;
+
+
+
+--}}  inclass public
+inclass private
+
+--{{ Служебная часть к func Most, SearchNearestsInArray
+
+  #Help `  true при полном попадении limit[x1,x2] в размеры массива aArrayDim1
+           при x1=0 восстанавливает как x1=1
+           при x2=0 восстанавливает как x2=LengthOfArray(aArrayDim1)
+           при x2>LengthOfArray(aArrayDim1) восстанавливает как x2=LengthOfArray(aArrayDim1)`;
+  func ValidLimit Synonym КорректныеГраницы(var aArrayDim1: Variant[]; var limit: Integer[]): Logical;
+    if LengthOfArray(aArrayDim1) = 0:
+      limit = [0,0];
+      Return false;
+    fi;
+    if LengthOfArray(limit) = 0:
+      limit = [1, LengthOfArray(aArrayDim1)];
+    else
+      if limit[1] < 1:
+        limit[1] = 1;
+      fi;
+      if limit[2] < 1:
+        limit[2] = LengthOfArray(aArrayDim1);
+      fi;
+      if limit[1] > LengthOfArray(aArrayDim1) or limit[2] < limit[1]:
+        limit = nil;
+        Return false;
+      fi;
+      if limit[2] > LengthOfArray(aArrayDim1):
+        limit[2] = LengthOfArray(aArrayDim1);
+        Return false;
+      fi;
+    fi;
+    Return true;
+  end;
+
+
+  #Help `  true при полном попадении limit[x1,x2] в размеры массива aArrayDim1
+           при true и
+           при x1=0 восстанавливает как x1=1
+           при x2=0 восстанавливает как x2=LengthOfArray(aArrayDim1)`;
+  func CheckLimit Synonym ПроверкаГраниц(var aArrayDim1: Variant[]; var limit: Integer[]): Logical;
+    if ValidLimit(aArrayDim1, limit):
+      Return true;
+    fi;
+    if limit[2]>0:
+      limit = nil;
+    fi;
+  end;
+--}} Служебная часть к func Most, SearchNearestsInArray
+
+
+inobject
+
+end

@@ -1,0 +1,79 @@
+#Help `подтаблица на основе внешних данных`;
+class inherited Com.Ctrl.IFrame "subtable based on external data"; -- Synonym extSubTable;
+
+import Com.Def, Com.Consts;
+
+
+inclass public
+
+  #Help `Приводит aObject к типу LinkTable.Base или создает новый LinkTable.Base, если aObject = nil`;
+  func TSelf(aObject :Object = nil) :LinkTable.Base;
+    if aObject = nil:
+      Result = Create;
+    else
+      Result = aObject;
+    fi;
+  end;
+
+
+ #Help `Заполняет поля в aObj одноименными из xArgs :Storage`;
+  proc SetParam(aObj :Object; xArgs :Storage);
+    if aObj <> nil and xArgs <> nil:
+      for var i  = 1..xArgs.Count do
+        aObj.SetField(xArgs.IndexByNumber[i], xArgs.ItemsByNumber[i]);
+      end;
+    end;
+  end;
+
+ #Help `Инициализация дефолтных значении для нового объекта ILinkTable`;
+  var DefCreateParam :storage:= Com.Utils.CreateStorage(['FrameType'   ,Com.Consts.TableFrame
+                                                        ,'Numbering'   ,true
+                                                        ,'CanInsert'   ,true
+                                                        ,'CanDelete'   ,true
+                                                        ,'Orientation' ,Horizontal
+                                                        ,'AutoSize'    ,true
+                                                        ]);
+
+  #Override;
+  func Create :LinkTable.Base;
+    Result = inherited Create;
+    SetParam(Result, DefCreateParam);
+  end;
+
+  #Override;
+  func CreateEx( aName :String = '' ) :LinkTable.Base;
+    Result = inherited CreateEx(aName);
+  end;
+
+  #Help `  Создает ILinkTable и добавляет его в ParentIFrame
+           aName - имя фрейма ILinkTable
+           aLinkTableParam - Storage с параметрами для создания ILinkTable
+           (один из параметров в aLinkTableParam - LinkParam :storage - параметры связывания с внешними данными)
+           aPrevious - IControl после которого будет вставлен ILinkTable (по умолчанию в конец)
+        `;
+  func NewLinkTable(ParentIFrame : IFrame; aName :String = ""; aLinkTableParam :Storage = nil; aPrevious :IControl = nil ) :LinkTable.Base;
+    with ParentIFrame do
+      if aName = "":
+        aName = FID + "_Subframe" + Str(FramesCount + 1);
+      end;
+      Result = TSelf(AddFrame( Self.CreateEx(Owner.ConstructID(Sys.Vocabulary.Voc.Key(aName))), aPrevious ));
+      SetParam(Result, aLinkTableParam);
+    end;
+  end;
+
+
+inobject public
+
+  var FArrayLinks :LinkTable.IArraySync := LinkTable.IArraySync.Create;
+
+  #Help `  Параметры определяющие взаимосвязь таблицы с "внешними" данными
+           используется в методе DefSyncData
+   `;
+  var LinkParam :Storage:= Storage.Create;
+
+
+
+inobject private
+
+
+end

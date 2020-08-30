@@ -1,0 +1,398 @@
+
+class "Разбор текстовых условий"; -- По умолчанию настроен на разбор логических выражений
+-- пример Exp.Base.new('(true|false)&true').Calc;
+-- вернет true
+-- пример Exp.Base.new('(НФА.101.*|НФА.105.*)~НФА.10?.03.*).ReplaseExpression
+-- вернет (math(FIELD,'НФА.101.*') or math(FIELD,'НФА.105.*')) and not math(FIELD,'НФА.10?.03.*')
+
+
+--import SConsole; -- для использование trace и message в режиме студии для серверных классов
+inclass
+
+  func CreateEx synonym new (expr :string = nil; aAsVal :function = nil; aFnf :function[] = nil) :Exp.Base;
+    result = Create;
+    with result do
+      Expression = expr;
+      if aAsVal <> nil:
+        AsVal = aAsVal;
+      fi;
+      if aFnf <> nil:
+        Fnf = aFnf;
+      fi;
+    end;
+--    result.Calc(expr);
+  end;
+  #Help ` Тип базовой функции - для избежания глюков`;
+  type FuncS2S = func(s :string):string;
+  type FuncS2I = func(s :string):integer;
+  type FuncS2V = func(s :string):variant;
+
+--  func CreateEx synonym new (expr: string = nil) :BudgBiz.Exp.Base;
+--    result = BudgBiz.Exp.Base.Create;
+--    result.Calc(expr);
+--  end;
+--
+  #help `Аналог SplitString - только оставляет разделители в отдельных строках`; --
+  func SplitString(Expr: string; Delim: string = nil): string[];
+    var count, p, j: integer;
+    var v: string;
+    Count = ValuesCount(Expr,Delim);
+    for var i = 1..Count do
+      v = ExtractValue(Expr, i, Delim);
+      p = p + Length(v) + 1;
+      if  v <> nil:
+        j = j + 1;
+        result[j] = v;
+      fi;
+      if  Expr[p] <> nil:
+        j = j + 1;
+        result[j] = Expr[p];
+      fi;
+    od;
+  end;
+
+
+
+inobject public
+
+
+
+  #help `  Символы обозначающие функции`;
+  var Fn :string := '|&~'; -- логика
+
+  #help `  Список разделителей для разбора условия`;
+  var delim :string := '()'+Fn;
+
+
+  #help `  массив функций на каждый символ из Fn (по умолчанию расчитан на разбор логики)
+           Для обращения к a1 и a2 надо дополнительно обязательно использовать
+           неявное преобразование типов, т.к. AsVal :func (f :string) :variant и могут быть глюки
+           Если  a1 :logical, то читаем значение как Logical(a1)
+           Если  a1 :string, то читаем значение как string(a1) и т.п.
+           `;
+  var Fnf :function[]:=
+  [ func(a1 :logical; a2 :logical): logical -- '|'
+      result = (Logical(a1) or Logical(a2));
+    end
+
+   ,func(a1 :logical; a2 :logical): logical -- '&'
+      result = (Logical(a1) and Logical(a2));
+    end
+
+   ,func(a1 :logical; a2 :logical): logical -- '~'
+      result = (Logical(a1) and not Logical(a2));
+    end
+  ];
+
+
+  #help `  Символы обозначающие функции с 2 аргументами`;
+  var Fn2Arg :string := '|&~'; -- логика
+
+  #help `  Массив строк с функциями и скобкой, номер строки дает приоритет`;
+  var Priority :string[] := ['(','|','~','&']; -- логика
+
+  #help `  Оптимизированный вариант для разбора логики с функциями и скобкой, номер позиции символа дает приоритет`;
+  var PriorityLogical :string := '(|~&'; -- логика
+
+  ------- пример значений для математики  --------------------
+  --var Fn :string := '+-*/^!cslen'; -- математика
+  --var Fn2Arg :string := '+-/*^'; -- математика
+  --var Priority :string[] := ['(','+-','*/','^!','csle','n']; -- математика
+
+  #help `  функция - Базовый приоритет при разборе (может быть несколько функций одного приоритета)`;
+  var GetPriorityBase :FuncS2I :=                    --   case f of
+  func (f :string) :integer                          --      '(': Result := 1;
+    var i :integer;                                  --      '+', '-': Result := 2;
+     for i = 1..LengthOfArray(Priority) do           --      '*', '/': Result := 3;
+       if pos(f, Priority[i]) >0:                    --      '^', '!': Result := 4;
+         Return i;                                   --      'c', 's', 'l', 'e': Result := 5;
+       fi;                                           --      'n': Result := 6;
+     od;
+  end;
+
+  #help `  функция - оптимизированный приоритет при разборе логики`;
+  var GetPriorityLogical :FuncS2I :=
+  func (f :string) :integer
+    Return pos(f, PriorityLogical);
+  end;
+
+  #help `  функция - приоритет при разборе выражения - по умолчанию - разбор логики`;
+  var GetPriority :FuncS2I := GetPriorityLogical; --
+
+  #help `  Определяет один символ как функцию при разборе`;
+  func isFn(f :string) :logical;
+     return length(f) = 1 and (pos(f, Fn)>0);      --  if ( TokenString[1] in ['+','-','/','*','^','!','c','s','l','n','e'] ) then
+  end;
+
+  #help `  Определяет строку как значение при разборе`;
+  func isVal(f :string) :logical;
+     return length(f) > 1 or (pos(f, delim)<1); -- больше 1 символа - точно значение, иначе не относится к разделителям
+  end;
+
+  #help `  из строки в значение - преобразует значение из выражения в variant`;
+  var AsVal :FuncS2V :=
+  func (f :string) :variant
+     return (up(f) = 'TRUE') or (up(f) = 'ИСТИНА');
+  end;
+
+
+
+--  #help `  значение в строку`;
+--  func StrVal(v :variant) :string;
+--     return str(v as logical);
+--  end;
+
+  #help `  расчетная функция по 2 параметрам`;
+  func CalcFn(f :string; a1 :variant = nil; a2 :variant = nil) :variant;
+    var ffunc :function;
+    var p :integer;
+    p = pos(f, fn); -- ищем позицию односимвольного знака функции f
+    if p>0:
+      ffunc = fnf[p]; -- по найденой позиции находим функцию - обработчик
+      if ffunc <> nil:
+        result = ffunc(a1, a2);
+      fi;
+    fi;
+--    if    f = '|': result = (a1 or  a2);                                  -- case _Stack.Strings[i][1] of
+--    elsif f = '&': result = (a1 and a2);                                  --    '+': Temp.Add( FloatToStr( a1 + a2 ) );
+--    elsif f = '~': result = (a1 and not a2);                              --    '-': Temp.Add( FloatToStr( a1 - a2 ) );
+--    fi;                                                                   --    '/': Temp.Add( FloatToStr( a1 / a2 ) );
+--                                                                          --    '*': Temp.Add( FloatToStr( a1 * a2 ) );
+--                                                                          --    '^': Temp.Add( FloatToStr( Power( a1, a2 ) ) );
+--                                                                          --    'c': Temp.Add( FloatToStr( cos( a2 ) ) );
+--                                                                          --    's': Temp.Add( FloatToStr( sin( a2 ) ) );
+--                                                                          --    'l': Temp.Add( FloatToStr( ln( a2 ) ) );
+--                                                                          --    'n': Temp.Add( FloatToStr( -a2 ) );
+--                                                                          --    'e': Temp.Add( FloatToStr( exp( a2 ) ) );
+  end;
+
+--{{  Блок для замены в выражении операторов и значений,
+--     использует для поиска функций переменную Fn (по умолчанию Fn='|&~')
+
+  #Help `  Замена в выражении expr операторов и значений
+           По умолчанию меняет логические [&],[|],[~] на [ and ], [ or ], [ and not ]
+           а значение на match(FIELD,'ЗНАЧЕНИЕ')`;
+  func ReplaseExpression
+    (expr :string = nil -- если пусто - берем из Expression
+     ;ReplaseVal: FuncS2S = nil -- предварительно присвоить ReplVal
+     ;ReplaseFn: FuncS2S = nil  -- предварительно присвоить ReplFn
+--     ;ReplaseVal: func(s :string):string = nil -- предварительно присвоить ReplVal
+--     ;ReplaseFn: func(s :string):string = nil  -- предварительно присвоить ReplFn
+     ) :string;
+
+       if expr = nil:
+         expr = Expression;
+       fi;
+     result = ConcatString(ReplaseValSplitString(SplitString(expr, delim),ReplaseVal,ReplaseFn));
+  end;
+
+  #Help `  Служебная функция замены значения
+           По умолчанию меняет логические [&],[|],[~] на [ and ], [ or ], [ and not ]`;
+  var ReplVal :FuncS2S :=
+      func(s: string): string
+        s = "match(FIELD,'"+s+"')";
+        return s;
+      end;
+
+  #Help `  Служебная функция замены функции - односимвольного операнда
+           По умолчанию меняет значение на match(FIELD,'ЗНАЧЕНИЕ')`;
+  var ReplFn :FuncS2S :=
+      func(s: string): string
+        var fn: string[]=[' or ',' and ',' and not '];
+        var p: integer;
+        p=pos(s,'|&~');
+        if p>0:
+          s = fn[p];
+        fi;
+        return s;
+      end;
+
+
+--}}
+
+
+  #help `  Переводим строку с формулой в обратную польскую запись`;
+  func ParseSplitString(SplitStr: string[]) :string[];
+    var  TokenString :string;
+
+    var Stack :string[]; -- Временный стек для знаков и геометрических функций
+
+      proc PUSH(v :string); -- добавление элемента на вершину стека;
+        Stack[LengthOfArray(Stack)+1] = v;
+      end;
+      func POP :string; -- извлечение элемента с вершины стека.
+        result = Stack[LengthOfArray(Stack)];
+        DeleteFromArray(Stack, LengthOfArray(Stack));
+      end;
+      func LAST :string; -- чтение элемента с вершины стека.
+        result = Stack[LengthOfArray(Stack)];
+      end;
+
+     for var P = 1..LengthOfArray(SplitStr) do
+       TokenString = SplitStr[p];
+           -- Если это число, помещаем его в выходной стек
+           if isVal(TokenString) then
+              result[LengthOfArray(result)+1] = TokenString;
+           fi;
+           -- Если это знак (или геометрическая функция), то...
+           if isFn(TokenString) then
+              -- ...если стек пустой, помещаем знак в стек ...
+              if LengthOfArray(Stack) = 0 then
+                 PUSH(TokenString);
+              else
+                 -- ... если приоритер текущей операции выше, чем приоритет
+                 -- последней операции в стеке, помещаем знак в стек ...
+                 if GetPriority( TokenString ) > GetPriority(LAST) then
+                    PUSH(TokenString);
+                 else
+                    -- ... иначе извлекаем из стека все операции, пока
+                    -- не встретим операцию с более высшим приоритетом
+                    while true do
+                       result[LengthOfArray(result)+1] = POP;
+                       if LengthOfArray(Stack) = 0 then Break; fi;
+                       if GetPriority( TokenString ) > GetPriority( LAST ) then
+                          Break;
+                       fi;
+                    od;
+                    --добавить в стек текущую операцию
+                    PUSH(TokenString);
+                 fi;
+              fi;
+           fi;
+           -- Если это открывающая скобка, помещаем ее в стек операций
+           if ( TokenString = '(') then
+              PUSH(TokenString);
+           fi;
+           -- Если это закрывающая скобка, извлекаем из стека операций в
+           -- выходной стек все операции, пока не встретим открывающую скобку.
+           -- Сами скобки при зтом уничтожаются.
+           if ( TokenString = ')') then
+             while true do
+                if LengthOfArray(Stack) = 0 then Break; fi;
+                if LAST = '(' then
+                   POP; -- DeleteFromArray(Stack,LengthOfArray(Stack));
+                   Break;
+                fi;
+                result[LengthOfArray(result)+1] = POP;
+             od;
+           fi;
+     od;
+     -- Если по окончании разбора строки с формулой, в стеке операций
+     -- еще что-то осталось, извлекаем все в выходной стек
+     if LengthOfArray(Stack) <> 0 then
+        while LengthOfArray(Stack) <> 0 do
+           result[LengthOfArray(result)+1] = POP;
+        od;
+     fi;
+  end;
+
+  #help `  Рассчитываем выражение в постфиксной форме`;
+  func Calculate( _Stack: string[] = nil): variant;
+  var i: integer;
+  var a1, a2: variant;
+  var Stack :variant[]; -- Временный стек для рассчетов
+
+    proc PUSH(v :variant); -- добавление элемента на вершину стека;
+      Stack[LengthOfArray(Stack)+1] = v;
+    end;
+    func POP :variant; -- извлечение элемента с вершины стека.
+      result = Stack[LengthOfArray(Stack)];
+      DeleteFromArray(Stack, LengthOfArray(Stack));
+    end;
+
+    for i = 1..LengthOfArray(_Stack) do
+       -- Если зто значение, помещаем его в стек для рассчета, иначе ...
+       if isVal(_Stack[i]) then
+          PUSH(AsVal(_Stack[i]));
+       else
+          -- ... Вынимаем из стека рассчета последнее значение ('true' или 'false')
+          a2 = POP;
+          -- если для выполнения операции требуется 2 аргумента,
+          -- вынимаем из стека рассчета еще одно значение
+          if isFn(_Stack[i]) then
+             a1 = POP;
+          fi;
+          -- Производим рассчет
+          PUSH(CalcFn(_Stack[i],a1,a2));
+       fi;
+    od;
+    Result = Stack[1];
+  end;
+
+
+  #Default;
+  #help `  Переведенная строка с формулой в обратную польскую запись`;
+  var items: string[];
+
+  #help `  Рассчитываем выражение`;
+  func Calc(NewExpr :string = nil): variant;
+    if  FCache = nil and Expression <> nil:
+        items = Cache(Expression);
+        ExpressionResult = Calculate(items);
+    fi;
+    if NewExpr <> nil:
+      if Expression <> NewExpr:
+        Expression = NewExpr;
+        items = Cache(Expression);
+        ExpressionResult = Calculate(items);
+      fi;
+    fi;
+    result = ExpressionResult;
+  end;
+
+inobject private
+  var FCache :variant[2];
+
+  #Help `  Результат - обратная польская запись для Expr
+           Если NewValue = nil - расчитываем, иначе - запоминаем`;
+  func Cache(Expr :string; NewValue :string[] = nil) :String[];
+    var row :integer;
+    if not SearchNearestInArray(FCache, Expr, row, [1]):
+      InsertInArray(FCache, row, [Expr, NewValue, 0]);
+    fi;
+    if NewValue = nil:
+      FCache[row,2] = ParseSplitString(SplitString(Expr,delim));
+    fi;
+    Result = FCache[row,2] as string[];
+  end;
+
+  #help `  Выражение`;
+  var Expression :string;
+  var ExpressionResult :variant;
+
+  #Help `  Служебная функция - разбирает значения массива на функции и значения и делает их замены`;
+  func ReplaseValSplitString
+    (SplitStr: string[]
+     ;var ReplaseVal :FuncS2S = nil
+     ;var ReplaseFn  :FuncS2S = nil
+    ) :string[];
+
+    var  TokenString :string;
+
+     if ReplaseVal = nil:
+       ReplaseVal = ReplVal;
+     fi;
+     if ReplaseFn = nil:
+       ReplaseFn = ReplFn;
+     fi;
+     for var P = 1..LengthOfArray(SplitStr) do
+       TokenString = SplitStr[p];
+       if isVal(TokenString) then
+          TokenString = ReplaseVal(TokenString);
+       elsif isFn(TokenString) then
+          TokenString = ReplaseFn(TokenString);
+       fi;
+       result[p] = TokenString;
+     od;
+  end;
+
+--  ----- работа со стеком
+--  var Stack :variant[];
+--  proc PUSH(v :variant); -- добавление элемента на вершину стека;
+--    Stack[LengthOfArray(Stack)+1] = v;
+--  end;
+--  func POP :variant; -- извлечение элемента с вершины стека.
+--    result = Stack[LengthOfArray(Stack)];
+--    DeleteFromArray(Stack, LengthOfArray(Stack));
+--  end;
+end

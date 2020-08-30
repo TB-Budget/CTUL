@@ -1,0 +1,214 @@
+#Help `подтаблица на основе внешних данных`;
+class inherited LinkTable.Base "subtable based on external data";
+
+import Com.Def, Com.Consts;
+
+
+inclass public
+
+  #Override;
+  func TSelf(aObject :Object = nil) :LinkTable.EdtRec;
+    Result = inherited TSelf(aObject);-- as LinkTable.EdtRec;
+  end;
+
+--  #Override;
+--  func isTSelf(aClass :Class) :Logical;
+--    aObject.InheritsFrom(self);
+--  end;
+
+
+-- #Help `Инициализация дефолтных значении для нового объекта ILinkTable`;
+--  var DefCreateParam :storage:= Com.Utils.CreateStorage(['FrameType'   ,Com.Consts.TableFrame
+--                                                        ,'Numbering'   ,true
+--                                                        ,'CanInsert'   ,true
+--                                                        ,'CanDelete'   ,true
+--                                                        ,'Orientation' ,Horizontal
+--                                                        ,'AutoSize'    ,true
+--                                                        ]);
+
+  #Override;
+  func Create :LinkTable.EdtRec;
+    Result = inherited Create;
+--    SetParam(Result, DefCreateParam);
+  end;
+
+  #Override;
+  func CreateEx( aName :String = '' ) :LinkTable.EdtRec;
+    Result = inherited CreateEx(aName);
+  end;
+
+  #Help `  Создает ILinkTable и добавляет его в ParentIFrame
+           aName - имя фрейма ILinkTable
+           aLinkTableParam - Storage с параметрами для создания ILinkTable
+           (один из параметров в aLinkTableParam - LinkParam :storage - параметры связывания с внешними данными)
+           aPrevious - IControl после которого будет вставлен ILinkTable (по умолчанию в конец)
+        `;
+  func NewLinkTable(ParentIFrame : IFrame; aName :String = ""; aLinkTableParam :Storage = nil; aPrevious :IControl = nil ) :LinkTable.EdtRec;
+    Result = inherited NewLinkTable(ParentIFrame, aName, aLinkTableParam, aPrevious);
+  end;
+
+  #Help `  Создает ILinkTable и добавляет его в ParentIFrame
+           Применяется только в бланках редакторах Frm.IEditor
+           Связываются записи из параметра extIRecordClass,
+           у которых в сылочном поле с именем = extLinkFieldName
+           ссылка на текущую запись бланка редактора = Frm.IEditor.EdtRec`;
+  func NewEdtRecLinkTable(ParentIFrame : IFrame; aName :String; extIRecordClass: class Com.Rec.IRecord; extLinkFieldName: string; aLinkParam :Storage = nil) :LinkTable.EdtRec;
+--    var aSortingRule, aAddFilter: string;
+          --могут быть заранее заполнены поля в xArgs = extOrder, AddextFilter
+          -- поля для синхронизации:
+          -- extIRecordClass - класс записи, который ссылается на "наш"
+          -- extFilter (с учтенным AddFilter) это расчетный параметр - но можно перекрывать после отработки NewEdtRecLinkTable
+          -- extOrder - как входящий параметр в xArgs / это необязательный параметр
+          -- extDeleted :Boolean - как входящий параметр в xArgs (загружать также удаленные записи) / это необязательный параметр
+          -- extOpt :Query.OpenHints[] - массив со значениями оптимизации Query / это необязательный параметр
+          -- extLimit :Integer - Query Limit / это необязательный параметр
+          --
+    var aFormOwner: Com.Frm.IEditor = ParentIFrame.Owner;
+    if aLinkParam = nil:
+      aLinkParam = Storage.Create;
+    fi;
+    aLinkParam.extIRecordClass = extIRecordClass;
+    aLinkParam.extLinkFieldName = extLinkFieldName;
+    with CTUL.FilterMaker.CreateExt do
+      AddCondition( aLinkParam.extLinkFieldName + '=' + Str(aFormOwner.EdtRec.InternalRecord) );
+      AddCondition( aLinkParam.AddextFilter );
+      aLinkParam.extFilter = GetFilter;
+    end;
+
+    var vLinkTableParam :storage = Com.Utils.CreateStorage(['LinkParam', aLinkParam]);
+    Result = NewLinkTable(ParentIFrame, aName, vLinkTableParam);
+    with Result do
+      with FArrayLinks do
+        ValueType    = varObject;
+        RecordClass  = LinkParam.extIRecordClass;
+        Owner        = aFormOwner;
+        LookupFilter = LinkParam.extFilter;
+        SyncData     = Result.@DefSyncData;
+      end;
+    end;
+    Result.OnInsert = Result.@OnInsertEdtRecLinks;
+    Result.OnDelete = Result.@OnDeleteEdtRecLinks;
+    Result.UdateEdtRecLinkTable;
+  end;
+
+inobject public
+  type TCreaterReversLink = func: Com.Rec.IRecord;
+  var CreateReversLink: TCreaterReversLink;
+
+
+--  #Help `  Конструктор новой сопряженной записи.`;
+--  func CreateReversLink :Com.Rec.IRecord;
+--    if (FReversLinks.RecordClass <> nil):
+--      Result = FReversLinks.RecordClass.CreateEx;
+--      Result.SetFieldValue(ReversLinkFieldName, (Owner as Com.Frm.IEditor).EdtRec.InternalRecord);
+--    fi;
+--  end;
+
+
+  #Help `  Добавление разыменованного столбца в таблицу, отражающую записи, имеющие ссылку на редактируемую.
+           Упрощенный конструктор.
+           Не требуется описания поля, т.к. оно всегда - FArrayLinks.
+           Не требуется описания картотеки, т.к. она никогда не вызывается.
+           Значение - только для вывода, т.к. редактирование должно выполняться в форме`;
+  func AddEdtRecLinkCol(aLabel :String = ""; aWidth :Numeric = 0; aLookupField :String = ""; aJump :Boolean = false; aJumpFormClass :class Com.Frm.IForm = nil) :IControlCell;
+    if (aJumpFormClass <> nil):
+      Result = AddFieldCol(aLabel, aWidth, FArrayLinks, aLookupField, , aJump, aJumpFormClass);
+    else
+      if (FArrayLinks.RecordClass <> nil):
+        Result = AddFieldCol(aLabel, aWidth, FArrayLinks, aLookupField, , aJump, FArrayLinks.RecordClass.EditorClass);
+      else
+        Result = AddFieldCol(aLabel, aWidth, FArrayLinks, aLookupField, , aJump);
+      fi;
+    fi;
+    Result.Enabled = false;
+    with Result as IEdit do
+      if Field = nil:
+        Field = FArrayLinks;
+      fi;
+    end;
+  end;
+
+--  var ReversLinkFieldName: string;
+--  var ReversLinkSortingRule: string;
+
+  --EdtRecLinkTable
+  func OnInsertEdtRecLinks(aSender :Com.Ctrl.IFrame; aIndex :Integer) :Logical;
+    if isTSelf(aSender):
+      var vILinkTable = TSelf(aSender);
+      var vLinkParam :Storage = vILinkTable.LinkParam;
+      if vLinkParam.extIRecordClass <> nil:
+        var newIRecord :Com.Rec.IRecord = vLinkParam.extIRecordClass.CreateEx;
+        newIRecord.SetFieldValue(vLinkParam.extLinkFieldName, (vILinkTable.Owner as Com.Frm.IEditor).EdtRec.InternalRecord);
+        if newIRecord.EditorClass <> nil:
+          var vEditor = newIRecord.EditorClass.OpenRecord(newIRecord);
+          vEditor.ReferrerForm = aSender.Owner;
+          vEditor.OnClose = @OnCloseEdtRecLinksEditor;
+          vEditor.Show(Com.Consts.StackedWindow);
+        fi;
+      fi;
+    fi;
+  end;
+
+  func OnDeleteEdtRecLinks(aSender :Com.Ctrl.IFrame; aIndex :Integer) :Logical;
+    if isTSelf(aSender):
+      var vILinkTable = TSelf(aSender);
+      var vLinkParam :Storage = vILinkTable.LinkParam;
+      if vLinkParam.extIRecordClass <> nil:
+        var delIRecord :Com.Rec.IRecord;
+        var vItem :variant = vILinkTable.FArrayLinks.GetItem(aIndex);
+        if vItem is Record:
+          delIRecord = vLinkParam.extIRecordClass.OpenRecord(vItem as Record);
+        elsif vItem is Com.Rec.IRecord:
+          delIRecord = vItem as Com.Rec.IRecord;
+        fi;
+        if (delIRecord <> nil):
+          try
+          delIRecord.Delete(true);
+          except
+          end;
+          if delIRecord.Deleted:
+            vILinkTable.FArrayLinks.Delete(aIndex);
+            vILinkTable.UdateEdtRecLinkTable;
+          fi;
+        fi;
+      fi;
+    fi;
+  end;
+
+inobject private
+
+  proc OnCloseEdtRecLinksEditor(aSender :Com.Frm.IForm; aModalResult :Integer);
+    if (aModalResult = Com.Consts.cmOk):
+      UdateEdtRecLinkTable;
+-- !!!!!!!!!!! все происходит inobject  - значит фрейм таблицу искать не надо !!!!!
+--      if (FramesCount > 0) and (Frames[1].FrameType = Com.Consts.TableFrame): -- добавление связанной записи как добавлениие позиции в таблицу
+--        Frames[1].UdateReversLinkTable;
+--      elsif (FramesCount = 0) and (FrameType = Com.Consts.TableFrame): -- добавление связанной записи как jamp в пустой таблице
+--        UdateReversLinkTable;
+--      fi;
+    fi;
+  end;
+
+  #Help ` Дефолтный метод для загрузки данных в массив таблицы`;
+  proc DefSyncData(aIArray :LinkTable.IArraySync = FArrayLinks);
+    if (aIArray.RecordClass <> nil):
+      aIArray.Value = Sys.Recs.ReadRecords(LinkParam.extIRecordClass.RecordClass, LinkParam.extFilter, LinkParam.extOrder, LinkParam.extFields, LinkParam.extDeleted); -- будет установлен NeedSync = true и AddUnloadedState
+      aIArray.NeedSync = false; -- сбрасываем флаг, т.к. это и так полная синхронизация
+    fi;
+  end;
+
+  #Help ` Обновляет таблицу на вебинтерфейсе`;
+  proc  TableAddUnloadedState;
+    if Owner <> nil:
+      Owner.AddUnloadedState(FID + jsonSeparator + 'table' + jsonSeparator); -- if aSetPos then  Owner.Refresh(True);  CurrentRow = aIndex; end;
+    fi;
+  end;
+
+  #Warning 'Казунин: сделать перебор компонент наследников BudgBiz.Fld.IArrayObj и для каждого .NeedSync = true и TableRowsCount = max[FArrayLinks1.Count,FArrayLinks2.Count,...]';
+  proc UdateEdtRecLinkTable;
+    FArrayLinks.NeedSync = true;
+    TableRowsCount = FArrayLinks.Count; -- при вызове FArrayLinks.Count - сработает SyncData, если NeedSync = true
+    TableAddUnloadedState;
+  end;
+
+end

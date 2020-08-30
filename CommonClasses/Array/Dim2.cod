@@ -1,0 +1,399 @@
+﻿class "Обертка над двухмерным массивом";
+import classes Array.Lib;
+
+inclass public
+--{{ inclass public
+
+  type tArrayDim2 = Array.Dim2;
+
+  func Create: tArrayDim2;
+    result = inherited Create;
+  end;
+
+  #Help `Приводит aObject к типу tArrayDim2 или создает новый tArrayDim2, если aObject = nil`;
+  func TSelf(aObject :Object = nil) :tArrayDim2;
+    if aObject = nil:
+      Result = Create;
+    else
+      Result = aObject;
+    fi;
+  end;
+
+  #Help `Определяет принадлежность объека к текущему классу`;
+  func isSelfClass Synonym isTSelf (aObject :Object) :Logical ;
+    Result = aObject.InheritsFrom(self);
+  end;
+
+--}}  inclass public
+
+
+
+inclass private
+
+
+inobject public
+
+  #Help `Двухмерный массив с данными`;
+
+  #Default;
+  Items[aRow, aColumn :Integer]: Variant get @GetItems set @SetItems;
+
+  #Help `Доступ к к элементу как к массиву`;
+  var Items3[aRow,aColumn,aIter :Integer] :Variant get @GetItems3 set @SetItems3;
+  var Count :integer = LengthOfArray(Fitems);
+
+  #Help ` Получить копию всего FItems/ записать целиком FItems`;
+  var Source :variant[2] get @GetSource set @SetSource;
+
+  proc IniItems(NewItems :variant[2]; NewColumnsCount :integer = nil);
+    FItems = NewItems;
+    if NewColumnsCount = 0:
+      RefreshColumnsCount;
+    else
+      FColumnsCount = NewColumnsCount;
+    fi;
+  end;
+
+  proc RefreshColumnsCount;
+    FColumnsCount = 0;
+    for var j = 1..LengthOfArray(FItems) do
+      if FColumnsCount < LengthOfArray(FItems[j]):
+        FColumnsCount = LengthOfArray(FItems[j]);
+      fi;
+    od;
+  end;
+
+
+  #Help `  Сортировка по номеру столбца
+               SortColumns = массив с номером столбца для сортировки,
+               отрицательный номер столбца - сортировка по уменьшению`;
+  proc Sort(SortColumns: Integer[]);
+    SortArray(Fitems, SortColumns); -- восстанавливаем первоначальное состояние
+
+--    IniSortPrimaryKey;
+--    if not EqualArray(SortColumns, LastSortColumns):
+--      SortArray2(Items, SortColumns, SortPrimaryKey, SortKeyCache, ColumnsCount, SortState, SortColumnTemp);
+--      LastSortColumns = SortColumns;
+--    fi;
+  end;
+
+  proc Delete(aRow :Integer);
+    var NeedRefreshColumnsCount = (RowLength(aRow) = FColumnsCount);
+    DeleteFromArray(FItems, aRow);
+    if NeedRefreshColumnsCount:
+      RefreshColumnsCount;
+    fi;
+  end;
+
+  proc Insert(aRow :Integer; aValue :Variant[] = nil);
+    InsertInArray(FItems, aRow, nil);
+    Row[aRow] = aValue;
+  end;
+
+  proc Exchange(aRow1, aRow2 :Integer);
+    swap(FItems[aRow1], FItems[aRow2]);
+  end;
+
+  var Row[aRow :Integer] :Variant[]  get @GetRow set @SetRow;
+  func RowLength(aRow :Integer = Fposition) :integer;
+    Result = LengthOfArray(FItems[aRow]);
+  end;
+
+
+--{{ Методы итератора и фильтра
+
+  var Position :integer get @GetPosition set @SetPosition;
+  ---- методы по текущему значению Position ----
+  --var Current synonym Текущий :Variant[] get @GetCurrent set @SetCurrent;
+  var Item[aColumn :Integer] :Variant  get @GetItem set @SetItem;
+  var Column[aColumn :Integer] :Variant[]  get @GetColumn set @SetColumn;
+
+  var CurrentColumn :integer := 1;
+  var CurrentColumnisSort :Logical;
+
+  #Help `  Ищет значение FindValue в отсортированном массиве items или в его отсортированном столбце
+           если items неявно двухмерный, тогда SortColumn[1] содержит номер столбца для поиска
+           Where возвращает результат поиска как границу повторяющихся значений FindValue включая концы
+            если не находит, то Where[1] = Where[2] = номеру позиции куда надо вставить FindValue не нарушая порядка сортировки
+            limitPad <0 - ищем левую границу,  limitPad >0 - ищем правую границу,  limitPad =0 - ищем левую и правую границу повторений,
+            SortColumn - массив с номером столбца, в котором ищем (только для 2х мерного массива InArray)
+            asc = true - массив items (или столбец в нем) отсортирован в порядке возрастания, иначе - убывания
+            Where = массив из 2х элементов, задающий границы диапазона поиска
+            ForSearch = искомый элемент`;
+  func SearchNearests synonym ПоискБлижайших (var FindValue: Variant; var Where: Integer[] = nil; asc: logical = true; var SortColumn: Integer[] = nil; limitPad: Integer = 0): Logical;
+    result = SearchNearestsInArray(Fitems, FindValue, Where, asc, SortColumn, limitPad);
+  end;
+
+  #Help `  Ищет значение FindValue в массиве items или в его отсортированном столбце`;
+  func Search (FindValue :variant; aColumns :integer[]; aBinary: Logical = nil; asc: logical = true; aWhere: integer[] = nil; aTotal :integer = 1) :integer[];
+  var first :integer;
+    if LengthOfArray(aWhere) = 0:
+      aWhere = [1,Count];
+    fi;
+    if aTotal = 1 and aWhere = [1,Count] and (not aBinary or asc):
+      first = SearchInArray(FItems, FindValue, aColumns, aBinary);
+      if first>0:
+        result = [first];
+      fi;
+      return;
+    fi;
+
+    if aBinary:
+      if not SearchNearests(FindValue, aWhere, asc, aColumns):
+        return nil;
+      fi;
+    else
+    fi;
+
+    var i: integer;
+    for var j = aWhere[1]..aWhere[2] do
+      if  FindValue = Fitems[j,aColumns[1]]:
+        i = i + 1;
+        if i>aTotal and aTotal>0:
+           return;
+        fi;
+        result[i] = j;
+      fi;
+    od;
+  end;
+
+  func FindPositionByColumn (FindValue :variant; aColumn :integer = CurrentColumn; aBinary: Logical = CurrentColumnisSort) :integer;
+    Result = SearchInArray(Fitems, FindValue, [aColumn], aBinary);
+  end;
+
+
+  #Help `  Следующий проинициализированный элемент массива Items`;
+
+  func Reset synonym Сброс: Logical;
+    FPosition = 0;
+  end;
+
+  #Help `Ссылка на метод(будет использоваться по умолчанию) для присвоения следующего значения для Position`;
+  var CurrentMoveNext :func:logical:=@MoveNextArrItem;
+
+  func MoveNext :logical;
+    result = CurrentMoveNext();
+  end;
+
+  #Help `Базовый метод (по умолчанию) для присвоения следующего значения для Position`;
+  func MoveNextArrItem :logical;
+  var NewPos :integer;
+    NewPos = NextArrItem(FItems, FPosition);
+    if NewPos > 0:
+      result = true;
+      FPosition = NewPos;
+    fi;
+  end;
+
+
+--{{ Методы для Enum
+
+  #Help `  Обертка Match к aPosition позиции
+           Match(значение столбца с номером aEnumProcParam[1], aEnumProcParam[2]);`;
+  func EnumConditionMatch(var aPosition: integer; aEnumProcParam :variant[]; var aPublic :variant[] = nil) :logical;
+    return Match(FItems[aPosition, aEnumProcParam[1]], aEnumProcParam[2]);
+  end;
+
+  #Help `  Основная процедура фидьтра  - пишет true в var aPublic :variant[]
+           aPublic[aPosition] = true`;
+  proc EnumProcFilter(var aPosition: integer; aEnumProcParam :variant[] = nil; var aPublic :variant[]);
+      aPublic[aPosition] = true; -- сохраняем только true, чтобы не нагружать разряженый массив :logical[]
+  end;
+
+  #Help `  Вычислит очередной Position (NextArrItem)
+           EnumNextParam[1] = номер конечного элемента`;
+  func EnumNextArrItem(var aPosition :integer = nil; var aNext :function = nil; var EnumNextParam :variant[] = nil; aProc :tEnumProc = nil; aCondition :tEnumCondition = nil; var aPublic :variant[] = nil; var aEnum :function = nil): logical;
+  var NewCurrent, aTo :integer;
+    aTo = EnumNextParam[1];
+    if aTo < 1:
+      aTo = LengthOfArray(FItems);
+    fi;
+    NewCurrent = NextArrItem(FItems, aPosition);
+    if NewCurrent > 0 and NewCurrent <= aTo:
+      result = true;
+      aPosition = NewCurrent;
+    fi;
+  end;
+
+
+  #Help `  Вычислит очередной Position с шагом EnumNextParamх[1] (по умолчанию Step = 1)
+           и необязательной границей = EnumNextParam[2]`;
+  func EnumNextStep(var aPosition :integer = nil; var aNext :function = nil; var EnumNextParam :variant[] = nil; aProc :tEnumProc = nil; aCondition :tEnumCondition = nil; var aPublic :variant[] = nil; var aEnum :function = nil): logical;
+  var NewCurrent, aStep, aTo :integer;
+    aStep = EnumNextParam[1];
+    if aStep = 0:
+     aStep = 1;
+    fi;
+
+    aTo = EnumNextParam[2];
+    if aTo = 0 and aStep>0:
+      aTo = LengthOfArray(FItems);
+    fi;
+
+    NewCurrent = aPosition + aStep;
+    if (aStep > 0 and NewCurrent <= aTo) or (aStep < 0 and NewCurrent >= aTo):
+      result = true;
+      aPosition = NewCurrent;
+    fi;
+  end;
+
+  #Help `  Основная процедура EnumNextHalf
+           Сокращяет диапазон поиска aPublic :variant[] в 2 раза
+           aEnumProcParam[1] - номер колонки FItems в которой поиск
+           aEnumProcParam[2] - искомое значение
+           aEnumProcParam[3] = false означает  что значения с столбце поиска
+           с номера aPublic[1] по aPublic[2] отсортированы по увеличению
+           иначе по уменьшению`;
+  proc EnumProcHalf(var aPosition: integer; aEnumProcParam :variant[] = nil; var aPublic :variant[]);
+    var aValue :variant = FItems[aPosition, aEnumProcParam[1]];
+    if aValue = aEnumProcParam[2]:
+      aPublic = [aPosition,aPosition]; -- нашли результат
+    else
+      var aDesc :Logical = (aEnumProcParam[3] <> nil);
+      var aValueLess :logical = (aValue < aEnumProcParam[2]);
+      if (aValueLess and aDesc) or (not aValueLess and not aDesc):
+          aPublic = [aPublic[1], aPosition];
+          aPosition = aPublic[1];
+      else
+          aPublic = [aPosition, aPublic[2]];
+      fi;
+    fi;
+  end;
+
+
+
+  #Help `  Вычислит очередной Position методом деления пополам для отрезка [aPublic[1], aPublic[2]]`;
+  func EnumNextHalf(var aPosition :integer = nil; var aNext :function = nil; var EnumNextParam :variant[] = nil; aProc :tEnumProc = nil; aCondition :tEnumCondition = nil; var aPublic :variant[] = nil; var aEnum :function = nil): logical;
+  var aFrom, aTo :integer;
+    aTo = aPublic[2];
+    if aTo = 0:
+      aTo = LengthOfArray(FItems);
+    fi;
+    NextHalf(aPosition,aFrom,aTo);
+  end;
+--}}  Enum
+
+
+  #Help `  Функция фильтрации - главное услови - результат разряженный массив logical[] из true
+           при этом для logical[iter] - iter= номеру строки в фильтруемом массиве
+           использует группу методов Enum
+           Применяет к каждой строке Match(значение столбца с номером ConditionParam[1], ConditionParam[2]);
+           Можно легко менять как параметр`;
+  var Filter :function :=
+  func (ConditionParam :variant[]) :logical[]
+    var p :integer = FPosition;
+    var EnumParam :variant[2];
+    EnumParam = [[],[],ConditionParam];
+    reset;
+    Enum(FPosition, @EnumNextArrItem, EnumParam, @EnumProcFilter, @EnumConditionMatch, result);
+    FPosition = p;
+  end;
+
+
+
+  #Help ` Преобразует результат фильтра в данные
+          SelectCols :integer[] - список колонок для выборки
+          если SelectCols пустой - берутся все колонки
+        `;
+  func SelectByFilter(FilterResult: logical[]; SelectCols: integer[] = nil): variant[2];
+    result = ArrayDim2_SelectByFilter(Fitems, FilterResult, SelectCols);
+  end;
+
+  #Help ` Применяет к каждой строчке Fitems с номером n из FilterResult
+          где FilterResult[n]=true
+          метод ExecProc(var Row :variant[])
+          где Row - строка из Fitems доступная на редактирование
+        `;
+  proc ExecProcByFilter(FilterResult: logical[]; ExecProc :proc(var Row :variant[]));
+    ArrayDim2_ExecProcByFilter(Fitems, FilterResult, ExecProc);
+  end;
+
+
+
+
+--}}  inclass public
+
+inobject private
+--{{ inobject private
+    FItems: Variant[2];
+    FColumnsCount: Integer;
+
+    var FPosition :integer;
+    func GetPosition :integer;
+      return FPosition;
+    end;
+    proc SetPosition(aValue :integer);
+      FPosition = aValue;
+    end;
+
+
+    func GetCurrent :variant[];
+      return FItems[FPosition];
+    end;
+    proc SetCurrent(aValue :variant[]);
+      SetRow(FPosition, aValue);
+    end;
+
+    func GetRow(aRow :integer) :variant[];
+      result = FItems[aRow];
+    end;
+    proc SetRow(aRow :integer; aValue :variant[]);
+      FItems[aRow] = aValue;
+      if LengthOfArray(aValue) > FColumnsCount:
+        FColumnsCount = LengthOfArray(aValue);
+      fi;
+    end;
+
+    func GetColumn(aColumn :integer) :variant[];
+      result = ArrayDim2_GetColumn(FItems, aColumn);
+    end;
+    proc SetColumn(aColumn :integer; aValue :variant[]);
+      ArrayDim2_SetColumn(FItems, aColumn, aValue);
+      if FColumnsCount < aColumn:
+        FColumnsCount = aColumn;
+      fi;
+    end;
+
+    #Help ` вернет Items[Position,aColumn]`;
+    func GetItem(aColumn :integer) :variant;
+      result = FItems[FPosition,aColumn];
+    end;
+    #Help ` запишет в Items[Position,aColumn]`;
+    proc SetItem(aColumn :integer; aValue :variant);
+      FItems[FPosition,aColumn] = aValue;
+      if aColumn > FColumnsCount:
+        FColumnsCount = aColumn;
+      fi;
+    end;
+
+    func GetItems(aRow, aColumn :integer) :variant;
+      result = FItems[aRow,aColumn];
+    end;
+    proc SetItems(aRow, aColumn :integer; aValue :variant);
+      FItems[aRow, aColumn] = aValue;
+      if aColumn > FColumnsCount:
+        FColumnsCount = aColumn;
+      fi;
+    end;
+
+    func GetSource :variant[2];
+      result = FItems;
+    end;
+    proc SetSource(aValue :variant[2]);
+      IniItems(aValue);
+    end;
+
+    func GetItems3(aRow, aColumn, aIter :integer) :variant;
+      result = ArrayDim2_GetItems3(FItems, aRow, aColumn, aIter);
+    end;
+    proc SetItems3(aRow, aColumn, aIter :integer; aValue :variant);
+      ArrayDim2_SetItems3(FItems, aRow, aColumn, aIter, aValue);
+      if aColumn > FColumnsCount:
+        FColumnsCount = aColumn;
+      fi;
+    end;
+
+
+--}} inobject private
+
+end

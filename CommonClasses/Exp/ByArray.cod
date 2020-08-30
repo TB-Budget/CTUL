@@ -1,0 +1,41 @@
+class inherited Exp.Base "Фильтрация массива по выражению";
+import classes Array.Lib;
+
+inclass
+
+  func CreateEx synonym new (expr :string = nil; aAsVal :function = nil; aFnf :function[] = nil) :Exp.ByArray;
+    if aFnf = nil:
+      aFnf = IniFnf;
+    fi;
+    result = inherited new(expr, aAsVal, aFnf);
+    result.AsVal = result.IniAsVal;
+  end;
+
+  #help `  Базовый функционал для работы фильтра над массивом`;
+
+  var IniFnf :function[]:=[@FilterOr, @FilterAnd, @FilterAndNot];
+
+inobject
+
+  #help `  Массив как объект (обертка над массивом :variant[2])
+           к этому массиву применяется фильтр-выражение`;
+  var FilterArray :Array.Dim2;
+
+  #help `  номер столбца из FilterArray.items :variant[2], по которому будет работать фильтр`;
+  var FilterColumn :integer;
+
+  #help `  Копирует Source в массив для фильтрации-FilterArray`;
+  proc SetFilterArray(Source :variant[2]);
+    if FilterArray = nil:
+      FilterArray = Array.Dim2.create;
+    fi;
+    FilterArray.Source = Source;
+  end;
+
+  #help `  из строки в значение - преобразует значение из выражения в variant`;
+  var IniAsVal :FuncS2V := -- формируем функцию - обертку с совместимыми параметрами (потом сохраним его в AsVal в предке)
+  func (f :string) :variant
+     return FilterArray.Filter([FilterColumn,f]); -- применяем фильтр к столбцу №1 в FilterArray.items :variant[2] и с маской = f
+  end;
+
+end

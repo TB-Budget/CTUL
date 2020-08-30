@@ -1,0 +1,161 @@
+class inherited Com.Fld.IArray "ArrayObj";
+
+import Com.Lib;
+
+
+inclass public
+
+  #Help `Преобразование aValue :Variant к Array.Dim2
+         При aValue = nil вернет новый Array.Dim2`;
+  func TValue(aValue :Variant = nil) :Array.Dim2;
+    if aValue = nil:
+      Return Array.Dim2.Create;
+    fi;
+    Result = aValue as Array.Dim2;
+  end;
+
+inobject public
+
+
+  #Help `  Номер столбца с хранимыми данными
+           По умолчанию = ValueType`;
+  var ValueColumn :integer  get @GetValueColumn set @SetValueColumn;
+
+
+  #Override;
+  proc InitDefaultProcessing;
+    NeedSync = true;
+  end;
+
+  #Override;
+  proc InitValue;
+    inherited InitValue;
+  end;
+
+  #Override;
+  proc Delete(aIndex :Integer);
+    TValue(FValue).Delete(aIndex); -- inherited Delete(aIndex);
+    FItemChanged = -1; --Compare вернет false и NeedSync будет = true
+    Value = FValue; -- присваиваем то же для вызова цепочки событий
+  end;
+
+  #Override;
+  proc Add(aValue :Variant);
+    Insert(Count + 1, aValue); -- inherited Add(aValue);
+  end;
+
+  #Override;
+  proc Insert(aIndex :Integer; aValue :Variant = nil);
+    TValue(FValue).Insert(aIndex); --  inherited Insert(aIndex, aValue);
+    FItemChanged = -1; --Compare вернет false и NeedSync будет = true
+    SetItem(aIndex, aValue);
+  end;
+
+  #Override;
+  proc Exchange(aIndex1, aIndex2 :Integer);
+    TValue(FValue).Exchange(aIndex1, aIndex2); -- inherited Exchange(aIndex1, aIndex2);
+    FItemChanged = -1; --Compare вернет false и NeedSync будет = true
+    Value = FValue; -- присваиваем то же для вызова цепочки событий
+  end;
+
+  #Override;
+  func GetItem(aIndex :Integer) :Variant;
+    if  FValue <> nil:
+      Result = TValue(FValue)[aIndex, ValueColumn]; --  Result = inherited GetItem(aIndex);
+    fi;
+    if Result = nil:
+      Result = Null(ValueType, RecordClass);
+    fi;
+  end;
+
+  #Override;
+  proc SetItem(aIndex :Integer; aValue :Variant);
+    if FItemChanged = 0:
+      if Compare(TValue(FValue)[aIndex, ValueColumn], aValue):
+        FItemChanged = 1; --Compare вернет true
+      else
+        FItemChanged = -1; --Compare вернет false и NeedSync будет = true
+      fi;
+    fi;
+    if FItemChanged < 0:
+      TValue(FValue)[aIndex, ValueColumn] = aValue;
+    fi;
+    Value = FValue; -- присваиваем то же для вызова цепочки событий
+  end;
+
+  #Override;
+  func Count :Integer;
+    if NeedInit:
+      InitValue;
+    end;
+    if NeedSync and SyncData <> nil:
+      NeedSync = false;
+      SyncData(self);
+    fi;
+    Result = TValue(FValue).Count; -- Result = inherited Count;
+  end;
+
+  #Help `  Этот флаг выставляется в ChangeValue, если были изменения`;
+  var NeedSync  :logical;
+
+  #Help `  Этот процедура выполнится при попытке считать Count и при NeedSync = true`;
+  var SyncData  :proc(aIArray :LinkTable.IArraySync);
+
+inobject private
+
+  #Help `  Для хранения результата CompareValue
+         - чтобы не сравнивать весь массив при изменении одного элемента`;
+  var FItemChanged :integer;
+
+  #Override;
+  func ChangeValue(aValue :Variant) :Logical;
+    if VarType(aValue) = VarArray:
+      Result = CompareValue(aValue);
+      if not Result:
+        if FValue = nil:
+          FValue = TValue; -- создаем Array.Dim2
+        fi;
+        TValue(FValue).Column[ValueColumn] = aValue as variant[];
+        AddUnloadedState;
+      end;
+    else
+      Result = inherited ChangeValue(aValue);
+    fi;
+    if not Result:
+      NeedSync = true;
+      AddUnloadedState;
+    fi;
+  end;
+
+  #Override;
+  func CompareValue(aValue :Variant) :Logical;
+    if FItemChanged <> 0: -- было присвоение значения для одного элемента массива
+      Result = (FItemChanged > 0);
+      FItemChanged = 0;
+      Return; -- досрочный выход т.к. результат уже известен
+    fi;
+
+    if VarType(aValue) = VarArray:
+      if FValue = nil:
+        Result =  Compare(0, LengthOfArray(aValue as variant[]));
+      else
+        Result =  Compare(TValue(FValue).Column[ValueColumn], aValue as variant[]);
+      fi;
+    else
+      Result = inherited CompareValue(aValue);
+    fi;
+  end;
+
+  #Help `  Номер столбца с хранимыми данными
+           По умолчанию = ValueType`;
+  Stored var FValueColumn :integer;
+
+  func GetValueColumn :integer;
+    Result = if(FValueColumn = nil, ValueType, FValueColumn);
+  end;
+
+  Proc SetValueColumn(aValue :integer);
+    FValueColumn = aValue;
+  end;
+
+end

@@ -1,0 +1,53 @@
+extends Com.Ctrl.IJumpButton "";
+
+import Sys.Errors;
+
+inobject private
+
+  #help ` это событие при Jump на пустой строке таблицы`;
+  var JumpByNil :proc(aSender :Com.Ctrl.IControl; aIndex :Integer);
+
+  #help ` стандартный Jump - открывает форму по ссылке
+          если сылки нет или это не ссылка и не предусмотрен JumpByNil - то ошибка
+          "Невозможно перейти на значение"
+          если формы по ссылке нет - то ошибка
+          "Нет формы для перехода"
+          `;
+  proc Jump(aSender :Com.Ctrl.IControl; aIndex :Integer);
+    if (Field <> nil) and (ParentFrame.FrameType = Com.Consts.TableFrame) and (ParentFrame.Subtable = nil) and (Field is Com.Fld.IArray):
+      var locIRecord :Com.Rec.IRecord;
+      if aIndex > (Field as Com.Fld.IArray).Count: -- самая первая позиция
+        ParentFrame.OnInsert(ParentFrame, aIndex);
+        Return; -- чтоды не допустить extended
+      else
+        var locItem :variant = (Field as Com.Fld.IArray).GetItem(aIndex);
+        if locItem is Record:
+          locIRecord = Com.Lib.GetInterface(locItem as Record);
+        elsif locItem is Com.Rec.IRecord:
+          locIRecord = locItem as Com.Rec.IRecord;
+        elsif locItem = nil and JumpByNil <> nil and ClosureOwner(JumpByNil) <> nil:
+          JumpByNil(aSender,aIndex);
+          Return; -- чтоды не допустить extended
+        else
+          Err( "@Err:JumpFail=Невозможно перейти на значение ""%s""", [Str(locItem)] );
+        fi;
+      fi;
+      if locIRecord <> nil:
+        var vFormClass :class Com.Frm.IForm;
+        if JumpForm <> nil then
+          vFormClass = JumpForm;
+        else
+          vFormClass = locIRecord.EditorClass;
+        fi;
+        if vFormClass <> nil then
+          Owner.OpenFrm(vFormClass, locIRecord);
+        else
+          Err( "@Err:NoFormForJump=Нет формы для перехода на %s", [locIRecord.Internal] );
+        fi;
+      fi;
+    else
+      extended Jump(aSender, aIndex);
+    fi;
+  end;
+
+end
