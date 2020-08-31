@@ -7,22 +7,8 @@ import Com.Def, Com.Consts;
 inclass public
 
   #Help `Приводит aObject к типу LinkTable.Base или создает новый LinkTable.Base, если aObject = nil`;
-  func TSelf(aObject :Object = nil) :LinkTable.Base;
-    if aObject = nil:
-      Result = Create;
-    else
-      Result = aObject;
-    fi;
-  end;
-
-
- #Help `Заполняет поля в aObj одноименными из xArgs :Storage`;
-  proc SetParam(aObj :Object; xArgs :Storage);
-    if aObj <> nil and xArgs <> nil:
-      for var i  = 1..xArgs.Count do
-        aObj.SetField(xArgs.IndexByNumber[i], xArgs.ItemsByNumber[i]);
-      end;
-    end;
+  func TSelf(aObject :Object = Create) :LinkTable.Base;
+    Result = aObject as LinkTable.Base;
   end;
 
  #Help `Инициализация дефолтных значении для нового объекта ILinkTable`;
@@ -36,13 +22,14 @@ inclass public
 
   #Override;
   func Create :LinkTable.Base;
-    Result = inherited Create;
+    Result = TSelf(inherited Create);
     SetParam(Result, DefCreateParam);
+
   end;
 
   #Override;
   func CreateEx( aName :String = '' ) :LinkTable.Base;
-    Result = inherited CreateEx(aName);
+    Result = TSelf(inherited CreateEx(aName));
   end;
 
   #Help `  Создает ILinkTable и добавляет его в ParentIFrame

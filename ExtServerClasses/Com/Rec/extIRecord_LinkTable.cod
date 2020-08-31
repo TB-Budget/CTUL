@@ -1,0 +1,13 @@
+extends Com.Rec.IRecord;
+
+inclass public
+
+  #Override;
+  func CreateEx :Com.Rec.IRecord;
+    Result = extended CreateEx;
+    if Stack_Cmd <> nil:
+      Result.CmdByStack(Stack_Cmd['CreateEx'] as Stack);
+    fi;
+  end;
+
+end

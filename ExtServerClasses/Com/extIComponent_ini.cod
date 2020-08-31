@@ -11,7 +11,60 @@ inclass public
     Result = aObject.InheritsFrom(self);
   end;
 
-  var iniStack :Stack := Stack.Create;
+  func GetDereferencedField synonym GetDerefField(aObj :Object; aField :String): Variant;
+    if WordsCount(aField, '.') = 1:
+      Result = aObj.GetField(aField);
+    else
+      Result = aObj.Evaluate('self.'+aField);
+    fi;
+  end;
+
+  proc SetDereferencedField synonym SetDerefField(aObj :Object; aField :String; aValue: Variant);
+    var wc = WordsCount(aField, '.');
+    if wc = 1:
+      aObj.SetField(aField, aValue);
+    else
+      var LastObj :Object = aObj.Evaluate('self.'+ExtractWords(aField, 1, wc-1, '.')) as Object;
+      LastObj.SetField(ExtractWord(aField, wc, '.'), aValue);
+    fi;
+  end;
+
+
+ #Help `Заполняет поля в aObj одноименными из xArgs :Storage`;
+  proc SetParam(aObj :Object; xArgs :Storage; ReWrite :Logical = true);
+    var aObj_isStorage = aObj is Storage;
+    var aObj_asStorage :Storage;
+    if aObj_isStorage:
+      aObj_asStorage = aObj as Storage;
+    fi;
+    if aObj <> nil and xArgs <> nil:
+      for var i  = 1..xArgs.Count do
+        var vField :String = xArgs.IndexByNumber[i];
+        var vValue :Variant = xArgs.ItemsByNumber[i];
+        if ReWrite or ((aObj_isStorage and not aObj_asStorage.FieldExists(vField)) or GetDerefField(aObj, vField) = nil):
+          SetDerefField(aObj, vField, vValue);
+        fi;
+      od;
+    fi;
+  end;
+
+
+  #Help `Storage из именованных(по имени метода) наборов команд/параметров`;
+  var Stack_Cmd :Storage;
+  proc AddStack_Cmd(aMethod :string; aCmd :Stack);
+    if Stack_Cmd = nil:
+      Stack_Cmd = Storage.Create;
+    fi;
+    Stack_Cmd[aMethod] = aCmd;
+  end;
+
+--  #Help `Команды которые выполняются один раз для одного объекта
+--         срабатывает в методе InitDefaultProcessing (при создании объекта)`;
+--  var InitDefaultProcessing_Cmd :Stack;
+--
+--  #Help `Команды которые выполняются один раз для одного объекта
+--         срабатывает в методе AfterInit (при создании объекта)`;
+--  var AfterInit_Cmd :Stack;
 
 --      proc PUSH(v :variant); -- добавление элемента на вершину стека;
 --      func POP :variant; -- извлечение элемента с вершины стека.
@@ -26,10 +79,35 @@ inclass private
 
 inobject public
 
+  #Help `Команды которые выполняются один раз для одного объекта
+         срабатывает в методе AfterInit (при создании объекта)`;
+  proc CmdByStack(aStack :Stack);
+    if aStack <> nil and aStack.Deep > 0:
+      while aStack.Deep > 0 do
+        var vCmd : variant = aStack.POP;
+        if vCmd is Storage:
+          SetParam(self, vCmd as Storage);
+        elsif vCmd is function:
+          var vCmdFunc = vCmd as function;
+          if ClosureOwner(vCmdFunc) <> nil:
+            vCmdFunc();
+          fi;
+        fi;
+      end;
+    fi;
+  end;
+
   proc InitDefaultProcessing;
+    extended InitDefaultProcessing;
 
   end;
 
-inobject private
 
+inobject private
+  proc AfterInit;
+    if Stack_Cmd <> nil:
+      CmdByStack(Stack_Cmd['AfterInit'] as Stack);
+    fi;
+    extended AfterInit;
+  end;
 end

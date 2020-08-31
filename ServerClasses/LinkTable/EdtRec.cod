@@ -8,7 +8,7 @@ inclass public
 
   #Override;
   func TSelf(aObject :Object = nil) :LinkTable.EdtRec;
-    Result = inherited TSelf(aObject);-- as LinkTable.EdtRec;
+    Result = inherited TSelf(aObject) as LinkTable.EdtRec;
   end;
 
 --  #Override;
@@ -28,13 +28,12 @@ inclass public
 
   #Override;
   func Create :LinkTable.EdtRec;
-    Result = inherited Create;
---    SetParam(Result, DefCreateParam);
+    Result = TSelf(inherited Create);
   end;
 
   #Override;
   func CreateEx( aName :String = '' ) :LinkTable.EdtRec;
-    Result = inherited CreateEx(aName);
+    Result = TSelf(inherited CreateEx(aName));
   end;
 
   #Help `  Создает ILinkTable и добавляет его в ParentIFrame
@@ -44,7 +43,7 @@ inclass public
            aPrevious - IControl после которого будет вставлен ILinkTable (по умолчанию в конец)
         `;
   func NewLinkTable(ParentIFrame : IFrame; aName :String = ""; aLinkTableParam :Storage = nil; aPrevious :IControl = nil ) :LinkTable.EdtRec;
-    Result = inherited NewLinkTable(ParentIFrame, aName, aLinkTableParam, aPrevious);
+    Result = TSelf(inherited NewLinkTable(ParentIFrame, aName, aLinkTableParam, aPrevious));
   end;
 
   #Help `  Создает ILinkTable и добавляет его в ParentIFrame
@@ -63,15 +62,15 @@ inclass public
           -- extOpt :Query.OpenHints[] - массив со значениями оптимизации Query / это необязательный параметр
           -- extLimit :Integer - Query Limit / это необязательный параметр
           --
-    var aFormOwner: Com.Frm.IEditor = ParentIFrame.Owner;
+    var aFormOwner = ParentIFrame.Owner as Com.Frm.IEditor;
     if aLinkParam = nil:
       aLinkParam = Storage.Create;
     fi;
     aLinkParam.extIRecordClass = extIRecordClass;
     aLinkParam.extLinkFieldName = extLinkFieldName;
     with CTUL.FilterMaker.CreateExt do
-      AddCondition( aLinkParam.extLinkFieldName + '=' + Str(aFormOwner.EdtRec.InternalRecord) );
-      AddCondition( aLinkParam.AddextFilter );
+      AddCondition( Str(aLinkParam.extLinkFieldName) + '=' + Str(aFormOwner.EdtRec.InternalRecord) );
+      AddCondition( Str(aLinkParam.AddextFilter) );
       aLinkParam.extFilter = GetFilter;
     end;
 
@@ -80,9 +79,9 @@ inclass public
     with Result do
       with FArrayLinks do
         ValueType    = varObject;
-        RecordClass  = LinkParam.extIRecordClass;
+        RecordClass  = LinkParam.extIRecordClass as Class Com.Rec.IRecord;
         Owner        = aFormOwner;
-        LookupFilter = LinkParam.extFilter;
+        LookupFilter = LinkParam.extFilter as String;
         SyncData     = Result.@DefSyncData;
       end;
     end;
@@ -137,8 +136,13 @@ inobject public
       var vILinkTable = TSelf(aSender);
       var vLinkParam :Storage = vILinkTable.LinkParam;
       if vLinkParam.extIRecordClass <> nil:
-        var newIRecord :Com.Rec.IRecord = vLinkParam.extIRecordClass.CreateEx;
-        newIRecord.SetFieldValue(vLinkParam.extLinkFieldName, (vILinkTable.Owner as Com.Frm.IEditor).EdtRec.InternalRecord);
+        var newIRecord :Com.Rec.IRecord;
+        if CreateReversLink <> nil and ClosureOwner(CreateReversLink) <> nil:
+          newIRecord = CreateReversLink();
+        else
+          newIRecord = (vLinkParam.extIRecordClass as Class Com.Rec.IRecord).CreateEx;
+          newIRecord.SetFieldValue(vLinkParam.extLinkFieldName as String, (vILinkTable.Owner as Com.Frm.IEditor).EdtRec.InternalRecord);
+        fi;
         if newIRecord.EditorClass <> nil:
           var vEditor = newIRecord.EditorClass.OpenRecord(newIRecord);
           vEditor.ReferrerForm = aSender.Owner;
@@ -157,7 +161,7 @@ inobject public
         var delIRecord :Com.Rec.IRecord;
         var vItem :variant = vILinkTable.FArrayLinks.GetItem(aIndex);
         if vItem is Record:
-          delIRecord = vLinkParam.extIRecordClass.OpenRecord(vItem as Record);
+          delIRecord = (vLinkParam.extIRecordClass as Class Com.Rec.IRecord).OpenRecord(vItem as Record);
         elsif vItem is Com.Rec.IRecord:
           delIRecord = vItem as Com.Rec.IRecord;
         fi;
@@ -192,7 +196,7 @@ inobject private
   #Help ` Дефолтный метод для загрузки данных в массив таблицы`;
   proc DefSyncData(aIArray :LinkTable.IArraySync = FArrayLinks);
     if (aIArray.RecordClass <> nil):
-      aIArray.Value = Sys.Recs.ReadRecords(LinkParam.extIRecordClass.RecordClass, LinkParam.extFilter, LinkParam.extOrder, LinkParam.extFields, LinkParam.extDeleted); -- будет установлен NeedSync = true и AddUnloadedState
+      aIArray.Value = Sys.Recs.ReadRecords((LinkParam.extIRecordClass as Class Com.Rec.IRecord).RecordClass, LinkParam.extFilter as String, LinkParam.extOrder as String, LinkParam.extFields as String, LinkParam.extDeleted as Logical); -- будет установлен NeedSync = true и AddUnloadedState
       aIArray.NeedSync = false; -- сбрасываем флаг, т.к. это и так полная синхронизация
     fi;
   end;

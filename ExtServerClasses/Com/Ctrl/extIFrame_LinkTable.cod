@@ -6,7 +6,7 @@ extends Com.Ctrl.IFrame;
 --Link:BudgBiz.Com.Ctrl.extIFrame  -- BudgBiz - базовое расширение
 --Link:BudgBiz.Style.Ctrl.StyleIFrame  -- BudgBiz(это текущее расширение) - Style
 
-import Com.Utils, Com.Consts;--, Com.Lib;
+--import Com.Utils, Com.Consts;--, Com.Lib;
 --import Com.Def, Consts, Lib; --import sConsole;
 
 inclass public
@@ -55,107 +55,7 @@ inobject public
     Result = CTUL.LinkTable.EdtRec.NewEdtRecLinkTable(self, aName, extIRecordClass, extLinkFieldName, vLinkParam);
   end;
 
---  func AddReversLinkTable(aName :String; IRecordClass :class Com.Rec.IRecord; aLinkFieldName :string; aSortingRule, aAddFilter :string = nil) :Com.Ctrl.IFrame;
---    Result = Self.AddNewFrame(aName);
---    Result.FrameType = Com.Consts.TableFrame;
---    Result.Numbering = true;
---    Result.CanInsert = true;
---    Result.CanDelete = true;
---    Result.ReversLinkFieldName = aLinkFieldName;
---    Result.ReversLinkSortingRule = aSortingRule;
---    var aFormOwner: Com.Frm.IEditor = Self.Owner as Com.Frm.IEditor;
---    with Result.FReversLinks do
---      ValueType    = varObject;
---      RecordClass  = IRecordClass;
---      Owner        = aFormOwner;
---      with CTUL.FilterMaker.CreateExt do
---        AddCondition(aLinkFieldName + '=' + Str(aFormOwner.EdtRec.InternalRecord));
---        AddCondition(aAddFilter );
---        LookupFilter = GetFilter;
---      end;
---      SyncData = @DefSyncData; -- пока так, а надо брать обработчик из параметров AddReversLinkTable
---    end;
---    Result.UdateReversLinkTable;
---    Result.OnInsert = @OnInsertReversLinks;
---    Result.OnDelete = @OnDeleteReversLinks;
---  end;
---
---  func OnInsertReversLinks(aSender :Com.Ctrl.IFrame; aIndex :Integer) :Logical;
---    if (aSender.FReversLinks.RecordClass <> nil):
---      --var newIRecord :Com.Rec.IRecord = aSender.FReversLinks.RecordClass.CreateEx;
---      --newIRecord.SetFieldValue(aSender.ReversLinkFieldName, (Owner as Com.Frm.IEditor).EdtRec.InternalRecord);
---      ----newIRecord.SetFieldValue('StringAddress', 'DocID : ' + Str(newIRecord.Internal.DocID)); -- отладочная строка
---      --------------------------------------------------------------------------
---      var newIRecord :Com.Rec.IRecord;
---      if (aSender.CreateReversLink = nil):
---        newIRecord = aSender.FReversLinks.RecordClass.CreateEx;
---        newIRecord.SetFieldValue(aSender.ReversLinkFieldName, (Owner as Com.Frm.IEditor).EdtRec.InternalRecord);
---      else
---        newIRecord = aSender.CreateReversLink();
---      fi;
---      var vEditorClass = newIRecord.EditorClass;
---      if (vEditorClass <> nil):
---        var vEditor = vEditorClass.OpenRecord(newIRecord);
---        vEditor.ReferrerForm = aSender.Owner;
---        vEditor.OnClose = @OnCloseReversLinksEditor;
---        vEditor.Show(Com.Consts.StackedWindow);
---      fi;
---    fi;
---  end;
---
---  func OnDeleteReversLinks(aSender :Com.Ctrl.IFrame; aIndex :Integer) :Logical;
---    if (aSender.FReversLinks.RecordClass <> nil):
---      var delIRecord :Com.Rec.IRecord;
---      if (aSender.FReversLinks.GetItem(aIndex) is Record):
---        delIRecord = aSender.FReversLinks.RecordClass.OpenRecord(aSender.FReversLinks.GetItem(aIndex) as Record);
---      elsif (aSender.FReversLinks.GetItem(aIndex) is Com.Rec.IRecord):
---        delIRecord = aSender.FReversLinks.GetItem(aIndex) as Com.Rec.IRecord;
---      fi;
---      if (delIRecord <> nil):
---        try
---        delIRecord.Delete(true);
---        except
---        end;
---        if delIRecord.Deleted:
---          aSender.FReversLinks.Delete(aIndex);
---          aSender.UdateReversLinkTable;
---        fi;
---      fi;
---    fi;
---  end;
 
 inobject private
-
---  proc OnCloseReversLinksEditor(aSender :Com.Frm.IForm; aModalResult :Integer);
---    if (aModalResult = Com.Consts.cmOk):
---      if (FramesCount > 0) and (Frames[1].FrameType = Com.Consts.TableFrame): -- добавление связанной записи как добавлениие позиции в таблицу
---        Frames[1].UdateReversLinkTable;
---      elsif (FramesCount = 0) and (FrameType = Com.Consts.TableFrame): -- добавление связанной записи как jamp в пустой таблице
---        UdateReversLinkTable;
---      fi;
---    fi;
---  end;
---
---  #Help ` Дефолтный метод для загрузки данных в массив таблицы`;
---  proc DefSyncData(aIArray :CTUL.LinkTable.IArraySync = FReversLinks);
---    if (aIArray.RecordClass <> nil):
---      aIArray.Value = Sys.Recs.ReadRecords(aIArray.RecordClass.RecordClass, aIArray.LookupFilter, ReversLinkSortingRule); -- будет установлен NeedSync = true и AddUnloadedState
---      aIArray.NeedSync = false; -- сбрасываем флаг, т.к. это и так полная синхронизация
---    fi;
---  end;
---
---  #Help ` Обновляет таблицу на вебинтерфейсе`;
---  proc  TableAddUnloadedState;
---    if Owner <> nil:
---      Owner.AddUnloadedState(FID + jsonSeparator + 'table' + jsonSeparator); -- if aSetPos then  Owner.Refresh(True);  CurrentRow = aIndex; end;
---    fi;
---  end;
---
---  proc UdateReversLinkTable;
---    FReversLinks.NeedSync = true;
---    TableRowsCount = FReversLinks.Count; -- при вызове FReversLinks.Count - сработает SyncData, если NeedSync = true
---    TableAddUnloadedState;
---  end;
-
 
 end

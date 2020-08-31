@@ -9,13 +9,15 @@ inclass public
     result = inherited Create;
   end;
 
+  func New (aSource :variant[]): tStack;
+    Result = Create;
+    Result.Source = aSource;
+  end;
+
+
   #Help `Приводит aObject к типу tStack или создает новый tStack, если aObject = nil`;
-  func TSelf(aObject :Object = nil) :tStack;
-    if aObject = nil:
-      Result = Create;
-    else
-      Result = aObject;
-    fi;
+  func TSelf(aObject :Object = Create) :tStack;
+    Result = aObject as tStack;
   end;
 
   #Help `Определяет принадлежность объека к текущему классу`;
@@ -37,18 +39,20 @@ inobject public
   end;
 
   func POP :Variant; -- извлечение элемента с вершины стека.
-    result = _Stack[DEEP];
-    DeleteFromArray(_Stack, DEEP);
+    if DEEP > 0:
+      Result = _Stack[DEEP];
+      DeleteFromArray(_Stack, DEEP);
+    fi;
   end;
 
   func LAST :Variant; -- чтение элемента с вершины стека.
     if DEEP > 0:
-      result = _Stack[DEEP];
+      Result = _Stack[DEEP];
     fi;
   end;
 
   func DEEP :integer; -- глубина стека
-    LengthOfArray(_Stack);
+    Result = LengthOfArray(_Stack);
   end;
 
 

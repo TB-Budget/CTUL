@@ -7,11 +7,18 @@ inclass public
 
   #Help `Преобразование aValue :Variant к Array.Dim2
          При aValue = nil вернет новый Array.Dim2`;
-  func TValue(aValue :Variant = nil) :Array.Dim2;
-    if aValue = nil:
-      Return Array.Dim2.Create;
-    fi;
+  func TValue(aValue :Variant = Array.Dim2.Create) :Array.Dim2;
     Result = aValue as Array.Dim2;
+  end;
+  #Help `Приводит aObject к типу LinkTable.IArraySync или создает новый LinkTable.IArraySync, если aObject = nil`;
+  func TSelf(aObject :Object = Create) :LinkTable.IArraySync;
+    Result = aObject as LinkTable.IArraySync;
+  end;
+
+
+  #Override;
+  func Create :LinkTable.IArraySync;
+    Result = TSelf(inherited Create);
   end;
 
 inobject public
@@ -92,7 +99,11 @@ inobject public
       NeedSync = false;
       SyncData(self);
     fi;
-    Result = TValue(FValue).Count; -- Result = inherited Count;
+    if FValue = nil:
+      Result = 0;
+    else
+      Result = TValue(FValue).Count; -- Result = inherited Count;
+    fi;
   end;
 
   #Help `  Этот флаг выставляется в ChangeValue, если были изменения`;
