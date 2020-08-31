@@ -11,21 +11,6 @@ inclass public
     Result = inherited TSelf(aObject) as LinkTable.EdtRec;
   end;
 
---  #Override;
---  func isTSelf(aClass :Class) :Logical;
---    aObject.InheritsFrom(self);
---  end;
-
-
--- #Help `Инициализация дефолтных значении для нового объекта ILinkTable`;
---  var DefCreateParam :storage:= Com.Utils.CreateStorage(['FrameType'   ,Com.Consts.TableFrame
---                                                        ,'Numbering'   ,true
---                                                        ,'CanInsert'   ,true
---                                                        ,'CanDelete'   ,true
---                                                        ,'Orientation' ,Horizontal
---                                                        ,'AutoSize'    ,true
---                                                        ]);
-
   #Override;
   func Create :LinkTable.EdtRec;
     Result = TSelf(inherited Create);

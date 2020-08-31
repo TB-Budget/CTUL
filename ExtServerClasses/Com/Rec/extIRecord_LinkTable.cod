@@ -6,7 +6,7 @@ inclass public
   func CreateEx :Com.Rec.IRecord;
     Result = extended CreateEx;
     if Stack_Cmd <> nil:
-      Result.CmdByStack(Stack_Cmd['CreateEx'] as Stack);
+      Com.Lib.CmdByStack(Stack_Cmd['CreateEx'] as Stack, Result);
     fi;
   end;
 

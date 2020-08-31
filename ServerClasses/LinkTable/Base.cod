@@ -1,7 +1,7 @@
 #Help `подтаблица на основе внешних данных`;
 class inherited Com.Ctrl.IFrame "subtable based on external data"; -- Synonym extSubTable;
 
-import Com.Def, Com.Consts;
+import Com.Def, Com.Consts, Com.Lib;
 
 
 inclass public

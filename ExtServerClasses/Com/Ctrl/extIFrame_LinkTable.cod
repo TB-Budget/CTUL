@@ -3,11 +3,6 @@ extends Com.Ctrl.IFrame;
 --линки на расширения
 --Link:Com.Ctrl.IFrame  -- Базовый класс
 --Link:Com.Ctrl.extIFrame  --  Расширение для клиента
---Link:BudgBiz.Com.Ctrl.extIFrame  -- BudgBiz - базовое расширение
---Link:BudgBiz.Style.Ctrl.StyleIFrame  -- BudgBiz(это текущее расширение) - Style
-
---import Com.Utils, Com.Consts;--, Com.Lib;
---import Com.Def, Consts, Lib; --import sConsole;
 
 inclass public
 inclass private
@@ -22,33 +17,14 @@ inclass private
 
 inobject public
 
-  --var FReversLinks: Com.Fld.IArray := Com.Fld.IArray.Create;  -- объявлено в Com.Ctrl.extIControlsLayout
-
---  #Help `  Имя поля сопряженной записи, содержащего ссылку на редактируемую запись.`;
---  var ReversLinkFieldName: string;
---  #Help `  Правило сортировки (порядок вывода) сопряженных записей.`;
---  var ReversLinkSortingRule: string;
---
---  type TCreaterReversLink = func: Com.Rec.IRecord;
---  var CreateReversLink: TCreaterReversLink;
-
-
-  --#Help `  Конструктор новой сопряженной записи.`;
-  --func CreateReversLink :Com.Rec.IRecord;
-  --  if (FReversLinks.RecordClass <> nil):
-  --    Result = FReversLinks.RecordClass.CreateEx;
-  --    Result.SetFieldValue(ReversLinkFieldName, (Owner as Com.Frm.IEditor).EdtRec.InternalRecord);
-  --  fi;
-  --end;
-
---  #Help `  Инициализация таблицы (фрейма), визуализирующей записи, содержащие ссылки на редактируемую.
---           Возвращает Com.Ctrl.IFrame (таблицу).
---           Параметры:
---           aName :String - Имя таблицы;
---           IRecordClass :class Com.Rec.IRecord - класс обертки сопряженной записи;
---           aLinkFieldName :string - имя поля, содержащего ссылку на редактируемую запись;
---           aSortingRule :string = nil - правило сортировки (как "ИмяПоля1;ИмяПоля2") сопряженных записей;
---           aAddFilter :string = nil - дополнительное условие фильтрации записей (складывается по "И" с основным);
+  #Help `  Инициализация таблицы (фрейма), визуализирующей записи, содержащие ссылки на редактируемую.
+           Возвращает CTUL.LinkTable.EdtRec (таблицу).
+           Параметры:
+           aName :String - Имя таблицы;
+           extIRecordClass :class Com.Rec.IRecord - класс обертки сопряженной записи;
+           extLinkFieldName :string - имя поля, содержащего ссылку на редактируемую запись;
+           extOrder :string = nil - правило сортировки (как "ИмяПоля1;ИмяПоля2") сопряженных записей;
+           AddextFilter :string = nil - дополнительное условие фильтрации записей (складывается по "И" с основным)`;
 --           aCreaterReversLink :func = nil - Конструктор новой сопряженной записи`;
   func AddEdtRecLinkTable(aName :String; extIRecordClass :class Com.Rec.IRecord; extLinkFieldName :string; extOrder, AddextFilter :string = nil) :CTUL.LinkTable.EdtRec;
     var vLinkParam = Com.Utils.CreateStorage(['AddextFilter', AddextFilter, 'extOrder', extOrder]);

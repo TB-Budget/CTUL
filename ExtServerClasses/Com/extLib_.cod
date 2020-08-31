@@ -1,0 +1,71 @@
+extends Com.Lib;
+
+inclass public
+
+  #Help `Считывает разыменованное значение поля`;
+  func GetDereferencedField synonym GetDerefField(aObj :Object; aField :String): Variant;
+    var vc = ValuesCount(aField, '.[]()');
+    if vc = 1:
+      Result = aObj.GetField(aField);
+    else
+      Result = aObj.Evaluate('self.'+aField);
+    fi;
+  end;
+
+  #Help `Записывает значение в разыменованное поле`;
+  proc SetDereferencedField synonym SetDerefField(aObj :Object; aField :String; aValue: Variant);
+    var vc = ValuesCount(aField, '.[]()');
+    if vc = 1:
+      aObj.SetField(aField, aValue);
+    else
+      var LastField = ExtractValue(aField, ValuesCount(aField, '.'), '.');
+      if ValuesCount(LastField, '[]()') = 1:
+        var LastObj :Object = aObj.Evaluate('self.' + ExtractValues(aField, 1, ValuesCount(aField, '.') - 1, '.')) as Object;
+        LastObj.SetField(LastField, aValue);
+      fi;
+    fi;
+  end;
+
+
+ #Help `Заполняет поля в aObj одноименными из xArgs :Storage
+        Поддерживает чтение/запись разsменованого поля
+        пример: xArgs["GroupDoc.GroupDoc.GroupDoc"] = nil
+        ReWrite = true - перезаписываем поле в aObj значением из xArgs
+        ReWrite = false - записываем только пустые поля в aObj значением из xArgs`;
+  proc SetParam(aObj :Object; xArgs :Storage; ReWrite :Logical = true);
+    var aObj_isStorage = aObj is Storage;
+    var aObj_asStorage :Storage;
+    if aObj_isStorage:
+      aObj_asStorage = aObj as Storage;
+    fi;
+    if aObj <> nil and xArgs <> nil:
+      for var i  = 1..xArgs.Count do
+        var vField :String = xArgs.IndexByNumber[i];
+        var vValue :Variant = xArgs.ItemsByNumber[i];
+        if ReWrite or (aObj_isStorage and not aObj_asStorage.FieldExists(vField)) or (GetDerefField(aObj, vField) = nil):
+          SetDerefField(aObj, vField, vValue);
+        fi;
+      od;
+    fi;
+  end;
+
+  #Help `Команды которые выполняются один раз для одного объекта
+         срабатывает в методе AfterInit (при создании объекта)`;
+  proc CmdByStack(aStack :Stack; aObj :Object);
+    if aStack <> nil and aStack.Deep > 0:
+      while aStack.Deep > 0 do
+        var vCmd : variant = aStack.POP;
+        if vCmd is Storage:
+          SetParam(aObj, vCmd as Storage);
+        elsif vCmd is function:
+          var vCmdFunc = vCmd as function;
+          if ClosureOwner(vCmdFunc) <> nil:
+            vCmdFunc();
+          fi;
+        fi;
+      end;
+    fi;
+  end;
+
+
+end
