@@ -1,0 +1,54 @@
+extends Com.Strings "";
+
+inclass public
+
+  #help `    Символ "Возврат каретки"`;
+  func CR synonym Br, ВозвратКаретки :string;
+    Return Chr(13);
+  end;
+
+  #help `    Символ "Перевод строки"`;
+  func LF synonym ПереводСтроки :string;
+    Return Chr(10);
+  end;
+
+  #help `    Символ "табуляция", n - количество повторов`;
+  func TAB (n :integer = 1) :string;
+    Return RepStr(Chr(09), n);
+  end;
+
+  #help `  На вход функции подяется массив строк.
+           Результат -  текст, составленный из элементов массива, где каждый элемент (кроме последнего)
+           заканчивается символовм разрыва строки.
+           Если параметр РазрывЭлементов = false, то разрыв не добавляется.
+           Однако можно разорвать абзацы сообщения, если в элементы locStr вводить символы перевода строки
+           Параметр АвтоПробел работает только при РазрывЭлементов = false
+           `;
+  func ArrayToText synonym МассивСтрокВТекст (locStr :String[]; РазрывЭлементов, АвтоПробел :Logical = true) :String;
+    var i, ii, j :integer;
+    ii = LengthOfArray(locStr);
+    if РазрывЭлементов:
+      for i = 1 .. ii do
+        Result = if((i < ii), (Result + locStr[i] + Br), (Result + locStr[i]));
+      od;
+    else
+      if АвтоПробел:
+        for i = 1 .. ii do
+          if (locStr[i] <> nil):
+            j = j + 1;
+            if (j = 1):
+              Result = Trim(locStr[i]);
+            else
+              Result = Result + ' ' + Trim(locStr[i]);
+            fi;
+          fi;
+        od;
+      else
+        for i = 1 .. ii do
+          Result = Result + locStr[i];
+        od;
+      fi;
+    fi;
+  end;
+
+end

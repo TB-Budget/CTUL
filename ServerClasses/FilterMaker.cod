@@ -369,7 +369,7 @@ inobject private ---------------------------------------------------------------
     end;
 
     func GroupPathCurrent: string;
-      Result = Q.Current.GroupPath;
+      Result = Q.Current.GroupPath as string;
       if Q.Current.IsGroup:
         Result = Result + '.' + Str(Q.Current.DocID);
       fi;
@@ -403,7 +403,7 @@ inobject private ---------------------------------------------------------------
             -- сменили значение
             GroupPathOldADD;
           fi;
-          GroupPathOld = Q.Current.GroupPath;
+          GroupPathOld = Q.Current.GroupPath as string;
         fi;
       od;
     fi;
