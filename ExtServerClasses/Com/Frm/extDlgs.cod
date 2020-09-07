@@ -1,0 +1,261 @@
+﻿-- Com Frm \Dlgs
+extends Com.Frm.Dlgs;
+
+import Sys classes Vocabulary, Errors;
+import Com classes Consts, Utils, Def;
+--import Def;
+--import Sconsole;
+
+inclass public
+  type tArrayTree = CTUL.Array.Tree;
+
+#Help
+` Alternate с двумя и более колонками и с соотношением ширин колонок
+
+  Параметры:
+    List :String[2] - двумерный массив для вывода, количество столбцов берется как LengthOfArray(List[1]);
+    aCaption - заголовок
+    aIndex - номер текущей строки при открытии
+    aColumns - массив соотношений ширин столбцов (по умолчанию [1,3] т.е для 2х столбцов и 1 к 4 для 1 столбца и 3 к 4 для второго)
+    aWrap - свертка текста в ячейке
+`;
+  func Alternate2(const List :String[2]; aCaption :String = ''; aIndex :Integer = 1; aColumns :Numeric[] = nil; aWrap :logical = true) :Frm.Dlgs; -- из 2х столбцов
+    Result = Create;
+    Result.ShowAlternate2(List, aCaption, aIndex, aColumns, aWrap);
+  end;
+
+#Help
+` Alternate с двумя и более колонками и с соотношением ширин колонок
+
+  Параметры:
+    List :String[2] - двумерный массив для вывода, количество столбцов берется как LengthOfArray(List[1]);
+    aCaption - заголовок
+    aIndex - номер текущей строки при открытии
+    aColumns - массив соотношений ширин столбцов (по умолчанию [1,3] т.е для 2х столбцов и 1 к 4 для 1 столбца и 3 к 4 для второго)
+    aWrap - свертка текста в ячейке
+`;
+  func AlternateTree(const List :String[2]; aCaption :String = ''; aIndex :variant = nil; aColumns :Numeric[] = nil; aWrap :logical = true; var aTree :tArrayTree = nil; GroupToResult :logical = false) :Frm.Dlgs; -- из 2х столбцов
+    Result = Create;
+    Result.ShowAlternateTree(List, aCaption, aIndex, aColumns, aWrap, aTree, GroupToResult);
+  end;
+
+----  func AccountPlanOnLookup(aSender :Com.Ctrl.IEdit; aIndex :Integer; aValue :Variant; var aNewValue :Variant) :Logical;
+--  proc MultiselectTest;
+--    var vSelected :String[];
+----    SplitString(AccountPlan.GetValue, ',', vSelected);
+--    vSelected = ['11','22','33','44','55'];
+--    Services.Multiselect.ShowFormEx(vSelected, vSelected, proc(aSelected :String[])
+----    Services.Multiselect.ShowFormEx(RTTI.GetPlanList, vSelected, proc(aSelected :String[])
+--      var vPlan = ConcatString(aSelected, ',');
+--      trace(vPlan);
+----      AccountPlan.SetValue(vPlan);
+----      if vPlan = 'УправленческийПлан' then
+----        AccountFilter.SetValue('Об');
+----      end;
+----      EndEdit(true);
+--    end);
+--  end;
+
+inobject public
+#Help `  метод вызываемый при закрытии формы`;
+  proc StoreUserState;
+    if TreeFrame <> nil and TreeFrame.Tree <> nil and ActiveControl <> nil:
+      if VarType(ActiveControl.Tag) = VarInteger:
+        TreeFrame.Tree.Position = ActiveControl.Tag as integer;
+      elsif VarType(ActiveControl.Tag) = varArray: -- AlternateTree
+        var P: integer[] = ActiveControl.Tag as integer[];
+        TreeFrame.Tree.Position = P[1];
+      fi;
+    fi;
+    inherited StoreUserState;
+  end;
+
+#Help `  метод вызываемый при открытии формы (последняя строка в DoShow)`;
+  proc RestoreUserState;
+    inherited RestoreUserState;
+  end;
+inobject private
+
+--  var TreeHeaderFrame  :Ctrl.IFrame;   -- Фрейм для загрузки шапки
+--  var TreeFrame        :Ctrl.IFrame;   -- Фрейм для загрузки tree
+--  var TreeBottomFrame  :Ctrl.IFrame;   -- Фрейм для загрузки итогов
+
+  proc ShowAlternate2(const List :String[2]; aCaption :String; aIndex :Integer; aColumns :Numeric[] = nil; aWrap :logical = true);
+    var vCtrl :Ctrl.IStatic;
+    var Cols  :integer;
+    SetCaption( Voc.Txt(aCaption) );
+    with RootFrame do
+      Margins = 8;
+      AddComp(INewLine.CreateEx(True) );
+      AddComp(IStatic.CreateEx(, 10, '') );
+      AddComp(IButton.CreateEx(, -25, cmNames[cmOk],
+        proc(aSender :Ctrl.IControl; aIndex :Integer)
+          SetVisible(False);
+          if OnFinish <> nil and ClosureOwner(OnFinish) <> nil and ActiveControl is Ctrl.IStatic:
+            OnFinish(ActiveControl.Tag);
+          fi;
+        end));
+      AddComp(IButton.CreateEx(, -25, cmNames[cmCancel], @CancelClick));
+      AddComp(IStatic.CreateEx(, 10, '') );
+      Cols = LengthOfArray(List[1]);
+      if LengthOfArray(aColumns) = 0:
+        aColumns = [1,3];
+      fi;
+      --Freezed = true; - не работает в Com.Frm.Dlgs!!!!
+      for var i = 1..LengthOfArray(List) do
+        AddComp(INewLine.CreateEx(True)); -- переход на новую строку
+        for var j = 1..Cols do
+          vCtrl = IStatic.CreateEx('Line_'+Str(j)+'_'+Str(i), aColumns[j], Voc.Txt(List[i,j]));
+          with vCtrl do
+            CanSelect = true;
+            TabStop = true;
+            Tag = i;
+            HasCaption = true;
+            Caption = List[i,j];
+            Wrap = aWrap;
+            OnClick =
+              proc(aSender :Ctrl.IControl; aIndex :Integer)
+                SetVisible(False);
+                if OnFinish <> nil and ClosureOwner(OnFinish) <> nil:
+                  OnFinish(aSender.Tag as Integer);
+                end;
+              end;
+          end;
+          AddComp(vCtrl);
+        od;
+      od;
+    end;
+    ActiveControl = Comp.Items['Line_1_'+Str(aIndex)];
+    ShowModal;
+  end;
+
+
+  var TreeFrame     :Ctrl.IFrame;
+  proc ShowAlternateTree(const List :String[2]; aCaption :String; aIndex :variant; aColumns :Numeric[] = nil; aWrap :logical = true; var aTree :tArrayTree = nil; GroupToResult :logical = false);
+
+    SetCaption( Voc.Txt(aCaption) );
+    ------------- формируем шапку ----------------
+    with RootFrame.AddNewFrame( "TreeFrameHeader" ) do
+      Margins = 8;
+      AddComp(INewLine.CreateEx(True) );
+      AddComp(IStatic.CreateEx(, 10, '') );
+      AddComp(IButton.CreateEx(, -25, cmNames[cmOk],
+        proc(aSender :Ctrl.IControl; aIndex :Integer)
+          SetVisible(False);
+          if OnFinish <> nil and ClosureOwner(OnFinish) <> nil and ActiveControl is Ctrl.IStatic:
+            OnFinish(ActiveControl.Tag);
+          fi;
+        end));
+      AddComp(IButton.CreateEx(, -25, cmNames[cmCancel], @CancelClick));
+      AddComp(IStatic.CreateEx(, 10, '') );
+    end;
+    ------------- формируем дерево ----------------
+    TreeFrame = RootFrame.AddNewFrame( "TreeFrame" );
+    with TreeFrame do
+      -- прописываем реакцию на выбор (это надо до ShowAlternateTree)
+      DefTreeColumnOnClick = proc(aSender :Ctrl.IControl; aIndex :Integer)
+                               var p :integer[] = aSender.Tag as Integer[];
+                               SetVisible(False);
+                               if OnFinish <> nil and ClosureOwner(OnFinish) <> nil:
+                                 OnFinish(p[1]);
+                               end;
+                             end;
+
+      ShowAlternateTree(List,aIndex,aColumns,aWrap,aTree,GroupToResult);
+      with Tree do
+        if WebSide:
+          WebModalHeight = GetWebModalHeight(35 + 42);
+          WebModalWidth  = TreeMaxWidth + MaxColumnsWidth;
+        fi;
+        --HeaderFrame.Title.Width = -(TreeMaxWidth + MaxColumnsWidth)+5*HeaderButtonSize;
+        if Position > 0:
+          ActiveControl = Comp.Items['Line_2_'+Str(Position)];
+        fi;
+      end; --with Tree
+    end; --with TreeFrame
+--    BeforeShowWindowStyle = BlockedWindow;
+    ShowModal;
+    if not WebSide:
+      BeginModify;
+      TreeFrame.Tree.NormalizeVisible; -- имеет смысл после отрисовки шаблона(ShowModal), в случае работы с tpl "напрямую"
+      EndModify;
+    fi;
+  end;
+
+
+end
+
+--      aTplObject = aIStatic.TplObject;
+--      if aTplObject<>nil:
+--        aTplObject.UseMacro = true;
+--        aIStatic.Caption = '<cf:$0000FF>'+aImageName+'<cf.>' ;
+----- В макросах шаблонов добавлена возможность менять шрифт, например:
+----    Normal <F:Arial> Arial <F.> Normal again
+--
+--Поддерживаются следующие последовательности: <b+>  - включить жирное начертание шрифта;
+--<b->  - выключить жирное начертание шрифта;
+--<b.> - сбросить жирность шрифта в исходное для клетки состояние;
+--<i+> - включить наклонное начертание шрифта;
+--<i->  - выключить наклонное начертание шрифта;
+--<i.>  - установить наклон шрифта в исходное для клетки состояние;
+--<u+>  - включить подчеркивание в начертании шрифта;
+--<u->  - выключить подчеркивание в начертании шрифта;
+--<u.>  - установить признак подчеркивания в исходное для клетки состояние;
+--<s+>  - увеличить размер шрифта на 1 пункт;
+--<s->  - уменьшить размер шрифта на 1 пункт;
+--<s:nn>  - установить размер шрифта в nn пунктов, например ;
+--<s.>  - установить исходный размер шрифта;
+--<cf:xxx>  - установить цвет шрифта, где xxx - числовое или мнемоническое обозначение цвета (см. далее);
+--<cb:xxx>  - установить цвет фона;
+--<cf.>  - сбросить цвет шрифта;
+--<cb.>  - сбросить цвет фона.
+
+
+
+----Trace в цвете
+----Можно использовать макросы шаблона!
+----Только вместо угловых скобок надо использовать спецсимволы
+----Trace(Chr(1)+'cb:Red'+Chr(2)+'ОШИБКА'+Chr(1)+'cb.'+Chr(2)+' Текст сообщения');
+--
+
+
+--          vCtrl = IStatic.CreateEx('GroupLine_1_'+Str(i), -TreeWidth(1));
+--          with vCtrl do
+--            CanSelect = true;
+--            TabStop = true;
+--            Tag = i;
+--            Alignment = RightAlign;
+----            StaticStyle = NormalText;
+----            StaticStyle = StaticButton;
+----            StaticStyle = StaticHeader;
+--            StaticStyle = StaticHyperlink;
+--            img = ImageByStat;
+--            fnt = ImageFont;
+--            if length(img)<5:
+--              if fnt<>'':
+--                FontName = fnt;
+--                FontBold = true;
+--              fi;
+--              if not IsGroup:
+--                if ImageElemFont<>nil:
+--                  FontName = ImageElemFont;
+--                fi;
+--                if ImageElemFontSize<>nil:
+--                  FontSize = ImageElemFontSize;
+--                fi;
+--                if ImageElemFontColor<>nil:
+--                  FontColor = ImageElemFontColor;
+--                fi;
+--                if ImageElemFontBold<>nil:
+--                  FontBold = ImageElemFontBold;
+--                fi;
+--                if ImageElemFontItalic<>nil:
+--                  FontItalic = ImageElemFontItalic;
+--                fi;
+--              fi;
+--            fi;
+--            IStaticSetImage(vCtrl, img, fnt);
+--            if IsGroup:
+--              OnClick = @TreeNodeOnClick;
+--            fi;
+--          end;

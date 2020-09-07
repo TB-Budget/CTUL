@@ -1,0 +1,44 @@
+﻿extends Com.Consts; --
+
+--Link:Sys.Consts  - цвета, клавиши, режим загрузки полей...
+--Link:Com.extConsts  - Kernel.System, Kernel.Console
+--Link:Bas.Extensions.extConstsServer  - Константы системных прав. --const cmdAnalytics    :String = "@Сmd:Analytics=Доп. аналитика";  -- Открыть дочернюю форму редактирования дополнительной аналитики
+--Link:Biz.Extensions.extConstsServer  - Константы прав доступа проекта Biz + типы ресурсов
+--Link:BizRus.extConsts                - Константы связанные со словоформами
+
+
+
+--Link:Control.Extentions.extConsts
+--Link:Rin.Расширения.Com.extConsts2
+--Link:Rin.Расширения.Com.extConsts
+--Link:МашРек.Расширения.Com.extConsts
+--Link:Отчетность.Расширения.Com.extConsts
+--Link:Первичка.Расширения.Com.extConsts
+--Link:РУЦ.Extentions.Com.extConsts
+--Link:ТиС.tabConsts
+--Link:ТиС.Extentions.extConsts
+--Link:Управление.Extensions.extConsts
+--Link:УчетТМЦ.Расширения.Com.extConstsinclass public
+
+inclass public
+  type AlignTypes = (
+    AlignNone     = 0 -- НетРасположения   / рисунок и текст совмещены, накладываются друг на друга;
+   ,AlignTop      = 1 -- РасположитьСверху / картинка расположена сверху, над текстом или встраиваемое окно прижато к верхнему краю главного окна;
+   ,AlignBottom   = 2 -- РасположитьСнизу  / картинка расположена под текстом или встраиваемое окно прижато к нижнему краю главного окна;
+   ,AlignLeft     = 3 -- РасположитьСлева  / картинка расположена слева относительно текста или встраиваемое окно прижато к левому краю главного окна;
+   ,AlignRight    = 4 -- РасположитьСправа / рисунок на кнопке размещен справа относительно текста или встраиваемое окно прижато к правому краю главного окна;
+   ,AlignClient   = 5 -- РасположитьПоОкну / рисунок на кнопке занимает всю площадь, отводимую под кнопку, т.е. его размеры совпадают с размерами кнопки.
+  );
+const utf8CRLF :string =
+`
+`;--chr(13)+chr(10);
+
+const WingDings2WhiteSquare   :string = '0'; --Chr(0xA3)- квадрат пустой
+--const WingDings2WhiteSquare   :string = '£'; --Chr(0xA3)- квадрат пустой
+const WingDings2BallotSquare  :string = 'R'; --Chr(0x52)- квадрат галка
+const WingDings2GroupSelAll   :string = WingDings2BallotSquare + utf8CRLF + WingDings2BallotSquare;
+const WingDings2GroupUnSelAll :string = WingDings2WhiteSquare  + utf8CRLF + WingDings2WhiteSquare; -- ' —'
+const WingDings2GroupSelHalf  :string = WingDings2BallotSquare + utf8CRLF + WingDings2WhiteSquare;
+const WingDings2ElemSel       :string = WingDings2BallotSquare;
+const WingDings2ElemUnSel     :string = WingDings2WhiteSquare;
+end

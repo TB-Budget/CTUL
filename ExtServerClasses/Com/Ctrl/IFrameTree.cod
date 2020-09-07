@@ -1,0 +1,435 @@
+--class inherited Com.Ctrl.IFrame "";
+extends Com.Ctrl.IFrame;
+
+import Sys.Vocabulary, Sys.Errors, Sys.Strings;
+import Com classes Consts, Utils, Def;
+--import Def;
+--import Sconsole;
+
+inclass public
+  type tArrayTree = Array.Tree;
+
+
+inclass private
+
+
+inobject public
+  var DefTreeColumnOnClick :tOnClick;
+--  proc(aSender :Ctrl.IControl; aIndex :Integer)
+--    SetVisible(False);
+--    if OnFinish <> nil and ClosureOwner(OnFinish) <> nil:
+--      OnFinish(aSender.Tag as Integer);
+--    end;
+--  end;
+
+
+  var Tree :tArrayTree;
+
+  var FontSizeTree: integer := 8;
+  var FontBoldTree: logical := true;
+
+
+--inobject private
+ -- var TreeFrame     :Ctrl.IFrame:=self;
+
+  proc TreeSelectClick(aIndexTree :Integer);
+    with tree do
+      var p :integer = position;
+      position = aIndexTree;
+      if isGroup:
+        if Item[ChildsSel] = Item[Childs]:
+          SetAllSelect(aIndexTree, false); -- выбрано все => выбрано ничего
+        elsif Item[ChildsSel] = 0:
+          SetAllSelect(aIndexTree, true); -- выбрано ничего => выбрано все
+        else
+          SetAllSelect(aIndexTree, true); -- выбрано не все => выбрано все
+        fi;
+      else
+        SetAllSelect(aIndexTree, not IsSel);
+      fi;
+      position = p;
+    end;
+  end;
+
+  proc TreeSelectOnClick(aCtrl :Ctrl.IControl; aIndex :Integer);
+    var pp :integer[] = aCtrl.Tag as Integer[];
+    TreeSelectClick(pp[1]);
+  end;
+
+  var TreeCompact :logical;
+  proc IniTreeCompact(aValue :logical = true);
+    TreeCompact = aValue;
+    if TreeCompact:
+--      WebSizeInPercent = 60;
+      MinHeight = 4;-- высота секции не менее
+    else
+      MinHeight = ButtonSize;-- высота секции не менее
+    fi;
+  end;
+     -- MinHeight = 5;-- высота секции не менее
+
+  proc DrowSelect(aPosition :integer);
+    var p :integer = tree.Position;
+    var aCtrl :Ctrl.IStatic;
+    with tree do
+      Position = aPosition;
+      aCtrl = ObjAll[5];
+      if isGroup:
+        if Item[ChildsSel] = Item[Childs]:
+          aCtrl.Caption = if(TreeCompact, GroupSelAll2, GroupSelAll3);
+          aCtrl.Hint = 'Выбраны все элементы';
+        elsif Item[ChildsSel] = 0:
+          aCtrl.Caption = if(TreeCompact, GroupUnSelAll2, GroupUnSelAll3);
+          aCtrl.Hint = 'Нет выбранных элементов';
+        else
+          aCtrl.Caption = if(TreeCompact, GroupSelHalf2, GroupSelHalf3);
+          aCtrl.Hint = 'Есть невыбранные элементы';
+        fi;
+      else
+        if IsSel: aCtrl.Caption = ElemSel; aCtrl.Hint = 'Элемент выбран';
+        else aCtrl.Caption = ElemUnSel; aCtrl.Hint = 'Элемент не выбран';
+        fi;
+      fi;
+      Position = p;
+    end;
+
+  end;
+
+
+  proc SetAllSelect(IterGroup :integer = 0; aValue :logical);
+    tree.SetTreeAllSelect(IterGroup, aValue, @DrowSelect);
+  end;
+
+  proc SetInvSelect(IterGroup :integer = 0);
+    tree.SetTreeInvSelect(IterGroup, @DrowSelect);
+  end;
+
+  #Help `  При result = true - продолжаем стандартные действия`;
+  var BeforeTreeNodeOnClick: func(aIndex :Integer): logical := func(aIndex :Integer): logical result = true; end;
+  proc TreeNodeOnClick(aSender :Ctrl.IControl; aIndex :Integer);
+    var p :integer[] = aSender.Tag as Integer[];
+    aIndex = p[1];
+    if BeforeTreeNodeOnClick(aIndex):
+      with Tree do
+        position = aIndex;
+        Open = not Open;
+        Self.Owner.BeginModify;
+        GroupStatVisible(ObjAll);
+        ChildMap(nil,@VisibleByOwner);
+        Self.Owner.EndModify;
+      end;
+    fi;
+  end;
+
+  #Help `  При result = true - продолжаем стандартные действия`;
+  var BeforeTreeNodeNameOnClick: func(aIndex :Integer): logical := func(aIndex :Integer): logical result = true; end;
+  proc TreeNodeNameOnClick(aSender :Ctrl.IControl; aIndex :Integer);
+    var p :integer[] = aSender.Tag as Integer[];
+    aIndex = p[1];
+    if BeforeTreeNodeNameOnClick(aIndex):
+      if  Tree.TreeCanSelect:
+        TreeSelectClick(aIndex);-- В режиме множественнного выбора - приравниваем клик на имени группы к клику на кнопке текущего выбора
+      else
+        TreeNodeOnClick(Tree.items3[aIndex, Tree.TreeObjAll, 1], aIndex);-- в обычном режиме дублируем клик на значке элемента/группы
+      fi;
+    fi;
+  end;
+  --func CellTextWidth :func(DC :variant; txt :string; aFontName :string = nil; aSize :string = nil; aBold :logical = nil; Italic :logical = nil) :numeric;
+
+  --end;
+
+  proc IStaticSetImage(aSender :Ctrl.IControl; aImageName :string; aFont :string = nil);
+    if Length(aImageName) < 5: -- символ
+        aSender.Caption = aImageName;
+    else
+      if aSender is IStatic:
+        (aSender as IStatic).ImageName = aImageName;
+      elsif aSender is IButton:
+        (aSender as IButton).ImageName = aImageName;
+      fi;
+    fi;
+  end;
+
+  func AddTreeColumnCheck(aName :String = ''; aWidth :Numeric = nil; aField :Fld.IValue = nil;  aColumnOnClick :TOnClick = nil) :ICheckBox;
+    var NewColumn :integer;
+    with tree do
+      NewColumn = LengthOfArray(ObjAll)+1;
+      result = ICheckBox.CreateEx(if(aName='','TreeColumnCheck_'+Str(NewColumn)+'_'+Str(position),aName), aWidth,'',aField);
+      with result do
+        FontSize = FontSizeTree;
+        FontBold = FontBoldTree;
+        CanSelect = true;
+        TabStop = true;
+        Tag = [position, NewColumn];
+        if aColumnOnClick <> nil:
+          OnClick = aColumnOnClick;
+        fi;
+--        zzz=true;
+      end;
+      ObjAllAdd(result);
+      AddComp(result);
+    end;
+  end;
+
+
+  func AddTreeColumnStatic(aName :String = ''; aWidth :Numeric = nil; aCaption :String = '';  aColumnOnClick :TOnClick = nil) :IStatic;
+    var NewColumn :integer;
+    with tree do
+      NewColumn = LengthOfArray(ObjAll)+1;
+      result = IStatic.CreateEx(if(aName='','TreeColumnStatic_'+Str(NewColumn)+'_'+Str(position),aName), aWidth, aCaption);
+      with result do
+        FontSize = FontSizeTree;
+        FontBold = FontBoldTree;
+        CanSelect = true;
+        TabStop = true;
+        Tag = [position, NewColumn];
+        HasCaption = true;
+        ImageSize = ButtonImageSize;
+        if aColumnOnClick <> nil:
+          OnClick = aColumnOnClick;
+        fi;
+        --zzz=true;
+      end;
+      ObjAllAdd(result);
+      AddComp(result);
+    end;
+  end;
+
+  func AddTreeColumnButton(aName :String = ''; aWidth :Numeric = nil; aCaption :String = '';  aColumnOnClick :TOnClick = nil) :IButton;
+    var NewColumn :integer;
+    with tree do
+      NewColumn = LengthOfArray(ObjAll)+1;
+      result = IButton.CreateEx(if(aName='','TreeColumnButton_'+Str(NewColumn)+'_'+Str(position),aName), aWidth, aCaption, aColumnOnClick);
+      with result do
+        FontSize = FontSizeTree;
+        FontBold = FontBoldTree;
+        CanSelect = true;
+        TabStop = true;
+        Tag = [position, NewColumn];
+        if WebSide:
+          --DefJsonStyle = [['background','transparent',true,true],['border','none',true,true]];
+        fi;
+--  var DefJsonStyle1 :variant[2] :=
+--  [['border-radius','20%',true] -- 50% кгрглая кнопка
+----  ,['margin-rught','0px',true]   clWhite
+--  ,['color',ColorToJSON(clBlack),true]
+--  ,['filter','invert(100)',true]
+--  ,['background',ColorToJSON(clDkGray),true]];
+
+        --background: transparent;
+        if TreeCompact:
+--          FontSize = 4;
+        fi;
+--        ImageSize = if (TreeCompact,8,ButtonImageSize);
+--        ImageSize = if (TreeCompact,ButtonImageSize-8,ButtonImageSize);
+        --zzz=true;
+      end;
+      ObjAllAdd(result);
+      AddComp(result);
+    end;
+  end;
+
+  #Help `  Добаляет контролы дерева`;
+  proc AddTreeGroup;
+    var vCtrl :IControl;
+    var fnt, img :string;
+    with tree do
+      ObjAll = nil;
+      AddComp(INewLine.CreateEx(True)); -- переход на новую строку (добавляется новая секция из 1 строки)
+
+      -- отступ для группы --
+      AddTreeColumnStatic('TreeMargins_1_'+Str(position), -TreeWidth(0),,if(IsGroup,@TreeNodeOnClick,nil)).StaticStyle = StaticHyperlink;
+
+      -- кнопка (3 варианта) --
+        for var t = 1..3 do
+          if WebSide:
+            vCtrl = AddTreeColumnButton('TreeGroup_'+Str(t+1)+'_'+Str(position), -TreeWidth(1),'',if(IsGroup,@TreeNodeOnClick,nil));
+          else
+            vCtrl = AddTreeColumnStatic('TreeGroup_'+Str(t+1)+'_'+Str(position), -TreeWidth(1),,if(IsGroup,@TreeNodeOnClick,nil));
+            (vCtrl as IStatic).StaticStyle = StaticHyperlink;
+          fi;
+          with vCtrl do
+            Alignment = RightAlign;
+            fnt = ImageFont;
+            if IsGroup:
+              img = ImageByStat(t);
+              Visible = (GetStat = t);
+            else
+              img = ImageByStat(StatElem);
+              Visible = t = StatOpenGroup;
+            fi;
+          end;
+          IStaticSetImage(vCtrl, img, fnt);
+        od;
+
+      -- select + имя группы--
+      if TreeCanSelect:
+          with AddTreeColumnStatic('TreeName_5_'+Str(position), -TreeWidth(2),,@TreeSelectOnClick) do
+            DrowSelect(position);
+            FontBold = true;
+            if WebSide :
+              FontColor = clBlack;
+              Hint = 'Смена статуса выбора';
+            else
+              FontColor = clLogMenuSelected; -- фон выделенного текста
+            fi;
+--            FontColor = clBlack;
+--            FontColor = clLogMenuSelected; -- фон выделенного текста
+--            FontColor = COLOR_INACTIVEDLGTEXT; -- неактивныей контрол
+--            FontColor = clLogMenuIcon; -- хороший выбор серого цвета
+            StaticStyle = StaticHyperlink;
+            if isGroup:
+              FontSize = 5;
+              Multiline = true;
+            else
+              FontSize = 8;
+            fi;
+          end;
+        AddTreeColumnStatic('TreeName_6_'+Str(position), -TreeWidth(3),item[CodeName],if(IsGroup,@TreeNodeNameOnClick,DefTreeColumnOnClick)).StaticStyle = StaticHyperlink;
+      else
+        AddTreeColumnStatic('TreeName_5_'+Str(position), -TreeWidth(3),item[CodeName],if(IsGroup,@TreeNodeNameOnClick,DefTreeColumnOnClick)).StaticStyle = StaticHyperlink;
+      fi;
+    end;
+  end;
+
+  #Help `  Внешняя пост обработка добавленного котрола в доп.столбцах`;
+  var AddTreeColumnExt :proc(aIControlCell :IControlCell);
+
+  proc ShowAlternateTree(const List :Variant[2]; aIndex :variant; aColumns :Numeric[] = nil; aWrap :logical = true; var aTree :tArrayTree = nil; GroupToResult :logical = false; DefTreeCanSelect:logical = false);
+    var TreeGroupCol :integer = 5; --(3 варианта картинок+отступ+имя группы)
+--    var vCtrl :IStatic;
+    var Cols, iIndex  :integer;
+    var OpenAll, NeedAddColumn :logical;
+      NeedAddColumn = LengthOfArray(aColumns) > 0;
+      if WebSide:
+        if LengthOfArray(aColumns) = 0:
+          aColumns = [-1]; -- только дерево без колонок
+        else
+          aColumns[LengthOfArray(aColumns)+1] = -1; -- замыкаем для обхода глюка в веб
+        fi;
+      fi;
+      if aTree <> nil:
+        Tree = aTree;
+        if VarType(aIndex) = VarNull: -- небыло инициализации
+          iIndex = aTree.Position; -- восстановили позицию из последнего выбора
+          if iIndex < 1:
+            iIndex = aTree.FirstElem;
+          fi;
+        fi;
+      else
+        Tree = tArrayTree.create;
+        with Tree do
+          TreeCanSelect = DefTreeCanSelect;
+          AddItemsBy(List);
+          NormalizeTree;
+          reset;
+        end;
+        aTree = Tree;
+      fi;
+      with Tree do
+        var z, j :integer;
+
+        z = TreeGroupCol; -- значек группы + имя группы
+        if TreeCanSelect: -- уточняем количество колонок для вывода дерева
+          z = z + 1;
+        fi;
+        for var q = 1..z do
+          InsertInArray(aColumns,1,-TreeMaxWidth/z); --  формируем настройки колонок групп и имен групп
+        od;
+        SetColumns(aColumns);
+        if iIndex<1:
+          if VarType(aIndex)=VarString:
+            if aIndex='':
+              iIndex = 0;
+            else
+              iIndex=PositionByOrder(aIndex);
+            fi;
+          elsif VarType(aIndex) = VarInt or VarType(aIndex) = VarNumeric:
+            iIndex = int(aIndex);
+          fi;
+        fi;
+
+        if iIndex = 0:
+          OpenAll = true;
+          iIndex = aTree.Position;
+          if iIndex < 1:
+            iIndex = aTree.FirstElem;
+          fi;
+        fi;
+
+        Cols = RowLength(1); -- для вставки дополнительных столбцов
+        reset;
+        OpenTree(iIndex);
+        if OpenAll:
+          SetOpenAll;
+        fi;
+
+        -------------- Заполнение дерева и доп. столбцов ----------------------
+        var vCtrl :IControlCell;
+        var Vz :variant;
+        while MoveNext do
+          AddTreeGroup;
+          j = if(TreeCanSelect,6,5); -- отступ + 3 варианта кнопки + имя группы + опционально select
+          if NeedAddColumn or (WebSide and aColumns[j+1] = -1):
+            for z = Name..Cols do
+              vCtrl = nil;
+              j = j + 1;
+              Vz = item[z];
+              if VarType(Vz) = VarString:
+                vCtrl = AddTreeColumnStatic(, aColumns[j],Voc.Txt(Vz)); -- не используем ColumnOnClick (он последним скрытым параметром)
+              elsif VarType(item[z]) = VarInteger: --StaticStyles NormalText=0, StaticButton=1,StaticHeader=2,StaticHyperlink=3
+                if  (Vz as StaticStyles) = StaticButton:
+                  vCtrl = AddTreeColumnButton(, aColumns[j]);
+                else -- (Vz as StaticStyles) = NormalText:
+                  vCtrl = AddTreeColumnStatic(, aColumns[j]);
+                fi;
+              elsif Vz is Fld.IValue: -- пока только логический тип и ColumnCheck, а надо остальные типы и iedit
+                vCtrl = AddTreeColumnCheck (, aColumns[j], Vz as Fld.IValue);
+              fi;
+              if vCtrl <> nil:
+                with vCtrl do
+                  Wrap = aWrap;
+                  if not isGroup or GroupToResult: -- разрешаем кликать на доп.столбцах элемента или группы (при разрешении выбора группы т.е. GroupToResult=true)
+                    if OnClick = nil:
+                      if TreeCanSelect:
+                        --OnClick = @TreeSelectOnClick; --
+                      else
+                        OnClick = DefTreeColumnOnClick;
+                      fi;
+                    fi;
+                    if OnClick = nil:
+                      Enabled = false;
+                    fi;
+                  else Enabled = false;
+                  fi;
+                end;
+                if  AddTreeColumnExt <> nil:
+                  AddTreeColumnExt(vCtrl);
+                fi;
+              fi;
+              if z = Name:
+                z = TreeAdd - 1;
+              fi;
+            od; --for var j = TreeAdd-1..Cols do
+          fi; --if NeedAddColumn or (WebSide and aColumns[j+1] = -1):
+
+        od; --while MoveNext
+        if iIndex > Position:
+          iIndex = Position;
+        elsif iIndex < 1 and Position > 0:
+          iIndex = 1;
+        fi;
+        if MaxColumnsWidth = 0:
+          MaxColumnsWidth = GetMaxWidthColumns;
+        fi;
+        if iIndex>0:
+          Position  = iIndex;
+        fi;
+        if WebSide:
+          NormalizeVisible; -- имеет смысл после отрисовки шаблона(ShowModal), в случае работы с tpl "напрямую"
+        fi;
+      end; --with Treee
+  end;
+
+
+end

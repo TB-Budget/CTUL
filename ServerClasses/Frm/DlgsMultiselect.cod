@@ -1,0 +1,347 @@
+--#Attr Visible = false;
+--class inherited Com.Frm.IBlankWithFrames "Множественный выбор";
+class inherited Com.Frm.IBlankForm "Множественный выбор";
+
+import Sys classes Vocabulary, Errors;
+import Com classes Consts, Lib, Def;
+--import Com classes Consts;
+--import Sconsole;
+import Def;
+inclass
+  type tArrayTree = CTUL.Array.Tree;
+#Help
+` Alternate с двумя и более колонками и с соотношением ширин колонок
+
+  Параметры:
+    List :Variant[2] - двумерный массив для вывода, количество столбцов берется как LengthOfArray(List[1]);
+    aCaption - заголовок
+    aIndex - номер текущей строки при открытии
+    aColumns - массив соотношений ширин дополнительных столбцов (по умолчанию [1,3] т.е для 2х столбцов и 1 к 4 для 1 столбца и 3 к 4 для второго)
+    aWrap - свертка текста в ячейке
+`;
+  func AlternateTree
+    (const List :Variant[2]
+    ; aCaption :String = ''
+    ; aIndex :variant = nil
+    ; aColumns :Numeric[] = nil
+    ; aWrap :logical = true
+    ; var aTree :tArrayTree = nil
+    ; GroupToResult :logical = false
+    ;aWindowStyles :WindowStyles = BlockedWindow
+    ;aWindowDockedAlign :AlignTypes = AlignRight
+    ;DefTreeCanSelect :logical = true
+    ;aReferrerForm  :Frm.IForm = nil
+--    ;aReferrerForm  :weakref Frm.IForm = nil
+    ) :Frm.DlgsMultiselect; -- из 2х столбцов
+    Result = Create;
+    Result.ReferrerForm = aReferrerForm;
+    Result.ShowAlternateTree(List, aCaption, aIndex, aColumns, aWrap, aTree, GroupToResult, aWindowStyles, aWindowDockedAlign, DefTreeCanSelect);
+   --func OpenFrm( aClass :class Frm.IForm; aRec :Rec.IRecord = nil; aWindowStyle :WindowStyles = StackedWindow ) :Frm.IForm;
+  end;
+
+
+#Help `  создаем массив для работы дерева`;
+func CreateTreeChooseFile(FileList :Variant[2];  aCellTextWidth :variant; MultiSelect :logical = true) :tArrayTree;
+--aCellTextWidth :func(txt :string; aFont: variant[])
+  result = tArrayTree.create;
+  with result do
+    TreeCanSelect = MultiSelect;
+    ls = '\'; -- разделитель пути к файлам и папкам
+    if aCellTextWidth = nil or aCellTextWidth is function: --func(txt :string; aFont: variant[]) - функция для расчета ширины клетки под текст
+      CellTextWidth=aCellTextWidth;
+    else -- если нет готовой функции расчета ширины клетки заполняем AnyCell - ссылку на клетку шаблона по которой сработает функция "по умолчанию"
+      CellTextWidth = nil;
+      if aCellTextWidth is Com.Ctrl.IControlCell:
+        AnyCell = aCellTextWidth.TplObject;
+      else
+        AnyCell = aCellTextWidth;
+      fi;
+    fi;
+    AddItemsBy(FileList);
+    NormalizeTree;
+    reset;
+  end;
+end;
+
+
+#Help
+`  Дерево выбора файлов`;
+func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :String = ''; Prompt :String = ''; Mask :String = '*.*'; aIndex :variant = nil; aCellTextWidth :variant = nil; MultiSelect :logical = true; aWindowStyles :WindowStyles = BlockedWindow) :tArrayTree;--string[];
+  var FileList :variant[];
+  var ln :integer;
+  var OldFile :string;
+  FolderNameInAttachment = CTULAttachmentDir + FolderNameInAttachment;
+  ln = length(FolderNameInAttachment);
+  FileList = GetFileList(FolderNameInAttachment, Mask, [FindOnlyFiles, RecursiveFind]);
+  for var j = 1..LengthOfArray(FileList) do
+    FileList[j] = System.Delete(FileList[j], 1, ln);
+  od;
+  if VarType(aIndex)= varString:
+    OldFile = System.Delete(aIndex,1,ln);
+  fi;
+  Result = CreateTreeChooseFile(Array.Lib.TranspArrayDim1(FileList), aCellTextWidth, MultiSelect);
+  AlternateTree(nil,Prompt,OldFile,,,Result,,aWindowStyles).OnFinish = OnFinish;
+end;
+
+
+ -- var UseResource: Logical := true;
+inobject public
+  var OnFinish :proc(aCommand :Integer);
+
+inobject private
+  #Help `  Обработчик кнопки ОК`;
+  proc ButtonClick(Sender :Ctrl.IControl; aIndex :Integer);
+    #warning 'Казунин: SetVisible(False) недьзя применять ранее OnFinish т.к. в WebSide не обновляется(refresh не помагает) форма, которая вызвала DlgsMultiselect';
+    -- глюк наблюдается при открытии DlgsMultiselect c WindowStyle in[StackedWindow, ChildWindow]:
+    if OnFinish <> nil and ClosureOwner(OnFinish) <> nil:
+      if VarType(Sender.Tag) <> VarArray :
+        Sender = ActiveControl;
+      fi;
+      if VarType(Sender.Tag) = VarArray :
+        var p :integer[] = Sender.Tag as integer[];
+        OnFinish(p[1]);
+      fi;
+    fi;
+    SetVisible(False);  #warning 'Казунин: оказывается SetVisible(False) сразу закрывает форму в отличии от Close(cmOk)';
+  end;
+
+  #Help `  Обработчик кнопки Cancel`;
+  proc CancelClick(aSender :Ctrl.IControl; aIndex :Integer);
+    Close(cmCancel);
+  end;
+
+  var TreeFrame   :Ctrl.IFrame;
+  var TreeFrameExt:Ctrl.IFrame;
+  var TreeFrameExt1:Ctrl.IFrame;
+  ButtonAllSel    :Ctrl.IButton;
+  #Help `  дополнительный обработчик кнопки выбора всех позиций`;
+  proc DoButtonAllSel;
+    TreeFrame.SetAllSelect(0, True);
+  end;
+
+  ButtonAllUnSel  :Ctrl.IButton;
+  #Help `  дополнительный обработчик кнопки отмены выбора для всех позиций`;
+  proc DoButtonAllUnSel; -- дополнительный обработчик кнопки
+    TreeFrame.SetAllSelect(0, False);
+  end;
+
+  ButtonInventSel :Ctrl.IButton;
+  #Help `  дополнительный обработчик кнопки инвентирования значения выбора`;
+  proc DoButtonInventSel; -- дополнительный обработчик кнопки
+    TreeFrame.SetInvSelect(0);
+--    with TreeFrame.Tree do
+--      var cl :IControlCell ;--Com.Ctrl.IControlCell;
+--      cl = Items3[5,TreeObjAll,6] as IControlCell;
+--      trace('TplObject.font.Size='+str(cl.TplObject.font.Size));
+--      trace('TplObject.font.name='+str(cl.TplObject.font.name));
+--    end;
+
+--    with TreeFrameExt1 do
+--      AddNewLine;
+--      with AddStatic(,'Microsoft Windows [Version 10.0.18363.836]') do FontColor = clLime; FontSize = 6; Alignment = LeftAlign; end;
+--        ReShow;
+--    end;
+
+--    if not webside: ButtonInventSel.TplObject.Image.Color = clLogEditSelected;  fi;
+  end;
+
+--  Pict     :Com.Fld.IBlob;
+--  Picture1 :IPicture;
+  proc Init;
+    inherited Init;
+
+    --  Обработчики кнопок в заголовке формы
+    CommandAction[cmdAllSel]     = @DoButtonAllSel;
+    CommandAction[cmdAllUnSel]   = @DoButtonAllUnSel;
+    CommandAction[cmdInventSel]  = @DoButtonInventSel;
+    FormIcon = CTULIconsDir+'diagram';
+
+    TreeFrameExt = RootFrame.AddNewFrame( "TreeFrameExt" );
+    with TreeFrameExt do
+      Orientation = Vertical;
+    end;
+
+
+
+    TreeFrame = TreeFrameExt.AddNewFrame( "TreeFrame" );
+    with TreeFrame do
+      IniTreeCompact;
+
+--      Color = clLogDialog; -- clLogDialog  clLogDialogPage
+--      UseSplitter      = true;
+--      SplitterAtRight  = true;
+--      CanResizeBySplit = true;
+--      Proportion = 3;
+      AutoSize = false;
+--      Margins = 25;
+--      WebMargins = true;
+--      MinHeight = ButtonSize;-- высота секции не менее
+--      MinHeight = 5;-- высота секции не менее
+--      --MinSize = 15; -- минимальная ширина при Orientation = Vertical для предка, меньше - схлопывается
+    end;
+    if 1=0:
+
+--    TreeFrame.Orientation = Horizontal;
+    TreeFrameExt1 = TreeFrameExt.AddNewFrame( "TreeFrameExt1" );
+    with TreeFrameExt1 do
+--      AutoSize = False; -- тут авторазмер не подойдет
+--      if WebSide:
+--        Size = 400;
+--      fi;
+--      Pict = Com.Fld.IBlob.Create;
+--      Pict.CompID  = 'Pict';
+--      AddComp(Pict);
+--      Picture1 = AddControl( IPicture.Create );
+--      Picture1.Field = Pict;
+--      Picture1.Stretch = True; -- масштабирование (подгоняем картинку под размер фрейма)
+--      Picture1.Center  = True; -- центрирование
+--      Pict.LoadFromFile( BudgBizIconsDir+'change.SVG' );
+
+--      Margins = 5;
+--      MarginsEx   = [35,5,15,50];
+--      WebMargins = true;
+      Color = 0; -- clLogDialog  clLogDialogPage COLOR_DIALOGBACK
+      Proportion = 1;
+      AutoSize = false;
+      SetColumns([-140]);
+      AddNewLine;
+      with AddStatic(,'Microsoft Windows [Version 10.0.18363.836]') do FontColor = clLime; FontSize = 6; Alignment = LeftAlign; end;
+      AddNewLine;
+      with AddStatic(,'(c) Корпорация Майкрософт (Microsoft Corporation), 2019. Все права защищены.') do FontColor = clLime;  FontSize = 6;  Alignment = LeftAlign; end;
+      AddNewLine;
+      with AddStatic(,'C:\ХХХ>format c: _') do FontColor = clLime;  FontSize = 8;  Alignment = LeftAlign; end;
+    end;
+    fi;
+  end;
+
+  cmdAllSel    :String = "@Cmd:AllSel=Выбрать все";
+  cmdAllUnSel  :String = "@Cmd:AllUnSel=Снять выбор со всех";
+  cmdInventSel :String = "@Cmd:InventSel=Инвентировать выбор";
+  cmdButtonTest:String = "@Cmd:ButtonTest=ButtonTest";
+
+  ---  Для появления заголовка формы - обязательно перекрываем  InitCmdButtons
+  ---  и добавляем не менее 1 кнопки для отработки в предках фрейма заголовка
+  ---  HeaderFrame = RootFrame.AddHeader( 'Header', "", '', vMaxButton, vCommands );
+  #Override;
+  func InitCmdButtons(var aMaxButton :Integer) :Ctrl.IButton[];
+  --func CreateCommand( aCommandName :String; aOnClick :TOnClick = nil; aIconName :String = nil; aDescription :String = "" ) :Ctrl.IButton;
+    ButtonAllSel    = Ctrl.IButton.CreateCommand(cmdAllSel    ,,CtulIconsDir+'TasksAll');
+    ButtonAllUnSel  = Ctrl.IButton.CreateCommand(cmdAllUnSel  ,,CtulIconsDir+'list-ul' );
+    ButtonInventSel = Ctrl.IButton.CreateCommand(cmdInventSel ,,CtulIconsDir+'change'  );
+    ButtonOK    = Ctrl.IButton.CreateCommand(consts.cmdOK   , @ButtonClick);
+    ButtonClose = Ctrl.IButton.CreateCommand(consts.cmdClose, @CancelClick);
+    Result =
+      [
+       ButtonAllSel
+      ,ButtonAllUnSel
+      ,ButtonInventSel
+      ,ButtonOK  --
+      ,ButtonClose
+      ];
+    aMaxButton = 5; -- 5 покажем, остальные в выпадающем списке
+  end;
+
+
+  proc AfterShow;3 -- после отрисовки становятся доступны объекты шаблона
+    inherited AfterShow;
+  end;
+
+  var TreeColumnOnClick :TOnClick :=
+    proc(aSender :Ctrl.IControl; aIndex :Integer)
+      ButtonClick(aSender, aIndex);
+----      if not WebSide or WindowStyle in[BlockedWindow, ModalWindow, PopupWindow, DockedWindow]:
+------        SetVisible(False);
+----        Close(cmOk);
+----      if  WebSide and  WindowStyle in [StackedWindow, ChildWindow]:
+----        SetVisible(False);
+----      fi;
+    end;
+--  proc TreeNormalizeVisible;
+--    TreeFrame.Tree.NormalizeVisible;
+--  end;
+  proc ShowAlternateTree
+    (const List :Variant[2]
+    ;aCaption :String
+    ;aIndex :variant
+    ;aColumns :Numeric[] = nil
+    ;aWrap :logical = true
+    ;var aTree :tArrayTree = nil
+    ;GroupToResult :logical = false
+    ;aWindowStyles :WindowStyles = BlockedWindow
+    ;aWindowDockedAlign :AlignTypes = AlignRight
+    ;DefTreeCanSelect :logical = true
+    );
+    var CanSel :logical;
+--    var SetActiveControl :Ctrl.IControl;
+    var NeedAddColumn :logical= LengthOfArray(aColumns) > 0;
+
+    SetCaption( Voc.Txt(aCaption) );
+--    with HeaderFrame do
+--      Size = HeaderButtonSize;
+--      AutoSize = false;
+--      visible = false;
+--    end;
+--    HeaderFrame.MinSize = HeaderButtonSize;
+--    HeaderFrame.MaxSize = HeaderButtonSize;
+
+--    HeaderFrame.Title.FixSize = true;
+--    HeaderFrame.Title.ImageSize = ButtonImageSize;
+--    HeaderFrame.Title.ImageName = FormIcon;
+    with TreeFrame do
+      DefTreeColumnOnClick = TreeColumnOnClick; -- прописываем реакцию на выбор
+      ShowAlternateTree(List,aIndex,aColumns,aWrap,aTree,GroupToResult,DefTreeCanSelect);
+      with Tree do
+        CanSel = TreeCanSelect;
+        if WebSide:
+          WebModalHeight = GetWebModalHeight(35 + 42);
+          WebModalWidth  = TreeMaxWidth + MaxColumnsWidth;
+        fi;
+        --HeaderFrame.Title.Width = -(TreeMaxWidth + MaxColumnsWidth)+(if(TreeCanSelect,5,2))*HeaderButtonSize;
+        --HeaderFrame.Title.Width = Min([-75,-(TreeMaxWidth + MaxColumnsWidth)+(if(TreeCanSelect,5,2))*HeaderButtonSize]);
+--        HeaderFrame.Title.Width = TreeMaxWidth;
+        if Position > 0:
+          if ObjAll[6+if(TreeCanSelect,1,0)] <> nil:
+            ActiveControl = ObjAll[6+if(TreeCanSelect,1,0)] ;
+          else
+            ActiveControl = ObjAll[5+if(TreeCanSelect,1,0)] ;--
+          fi;
+        fi;
+--        ControlWidth = if(CanSel,5,2)*HeaderButtonSize;
+        MinSize = TreeMaxWidth+if(NeedAddColumn,MaxColumnsWidth,0); -- для модального режима ограничиваем ширину при автовыравнивании
+      end; --with Tree                                                                 proc NormalizeVisible(IterGroup :integer = 0);
+    end; --with TreeFrame
+    ButtonAllSel.Visible = CanSel;
+    ButtonAllUnSel.Visible = CanSel;
+    ButtonInventSel.Visible = CanSel;
+    if not WebSide:
+      --BeforeShow_ProcBefore[LengthOfArray(BeforeShow_ProcAfter)+1] = @BeginModify;
+      BeforeShow_ProcAfter[LengthOfArray(BeforeShow_ProcAfter)+1] = proc TreeFrame.Tree.NormalizeVisible; end; -- имеет смысл после отрисовки шаблона(ShowModal), в случае работы с tpl "напрямую"
+    fi;
+
+    if aWindowStyles = DockedWindow:
+      WindowDockedAlign = aWindowDockedAlign;
+    fi;
+
+    BeforeShowWindowStyle = aWindowStyles;
+ --   WindowDockedAlign = AlignRight;   -- для BeforeShowWindowStyle=DockedWindow ///AlignBottom AlignRight
+
+    --BeginModify;
+    Show(aWindowStyles);
+    --EndModify;
+
+    --TreeFrame.Tree.NormalizeVisible; - перенес выполнение NormalizeVisible в BeforeShow_ProcAfter
+
+-- тестирование дублей форм
+--    if not WebSide:
+--       var uo :UserObject = (self as variant).FForm as UserObject;
+--       var z = uo.ObjectsCount;
+--       trace('==================================');
+--       for var j = 1..z do
+--         trace(uo.Objects[j]);
+--         trace(uo.Objects[j].ClassName);
+--       od;
+--    fi;
+
+  end;
+end
+--if Orientation = WithTabs then      FrameObject.OnSwitch = 'Frame_OnSwitch';    end;

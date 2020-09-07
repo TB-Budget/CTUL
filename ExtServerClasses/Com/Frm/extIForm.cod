@@ -1,0 +1,169 @@
+extends Com.Frm.IForm;
+--  ссылки на связанные формы --
+--Link:Com.Frm.ExtIForm   - ссылка на клиентское расширение
+--Link:BudgBiz.Com.Frm.ExtIFormBudgBiz - ссылка на на клиентское расширение (BudgBiz)
+
+import Com classes Consts;
+Import Sys.Utils;
+
+inclass public
+
+
+  #Help `  Создает десктопную форму
+
+           Параметры:
+             Form :variant - или класс формы или имя класса
+             aRecord :Record - необязательная запись (для совместимости с десктопным ShowFormEx)
+             aWindowStyle :WindowStyles - стиль окна
+
+           Пример: - помещает обычгый бланк в стек форм
+             ShowFormExClient('BudgBiz.Import', ,StackedWindow);`;
+  func ShowFormExClient( aForm :variant; var aRecord :Record = nil; aWindowStyle :WindowStyles = AutoDetect) :integer;
+    if VarType(aForm) = VarString:
+      result = FindClass(aForm).ShowFormEx(aRecord, aWindowStyle);
+    else
+      result = aForm.ShowFormEx(aRecord, aWindowStyle);
+    fi;
+  end;
+
+inclass private
+
+  func RuleCanOpen(aiForm :Com.Frm.IForm) :logical;
+    if false and (aiForm <> nil and aiForm is Frm.DlgsMultiselect): --'BudgBiz.Frm.DlgsMultiselect':
+      return false;
+    fi;
+    result = true;
+  end;
+
+inobject public
+
+  stored var OnlyBoxOpen: logical := true;
+
+  var TplForm :weakref := TplObject; -- variant;
+
+  #Help `  Вернет Form :Form`;
+  func TplObject: variant;
+    Result = getfield('Form');
+  end;
+
+  func TplObjects: variant[];
+    Result = [TplObject];
+  end;
+
+  proc BeginModify;
+    if not WebSide:
+      if TplForm = nil:
+        TplForm = TplObject;
+      fi;
+      if TplForm <> nil:
+        TplForm.Template.BeginModify;
+      fi;
+    fi;
+  end;
+
+  proc EndModify;
+    if not WebSide:
+      if TplForm = nil:
+        TplForm = TplObject;
+      fi;
+      if TplForm <> nil:
+        TplForm.Template.EndModify;
+      fi;
+    fi;
+  end;
+
+  -- параметры открытия формы на клиенте при WindowStyle = DockedWindow
+  -- нужно заполнять перед show формы (параметры обрабатываются в BeforeShow)
+  #Help `  Реализация на клиенте DockedWindow`;
+  var BeforeShowWindowStyle :WindowStyles;
+  var WindowDockedAlign :AlignTypes;
+  var WindowRestoreSize :Logical;
+  var WindowRestorePos  :Logical;
+
+  type tPrc = proc; -- процедурный тип без параметров
+  proc CalkStack(var aPrcArray :tPrc[]);
+    var p :integer;
+    p = LengthOfArray(aPrcArray);
+    while p > 0 do
+      var proc_j :tPrc = aPrcArray[p];
+      proc_j();
+      DeleteFromArray(aPrcArray, p);
+      p = p - 1;
+    od;
+  end;
+
+
+  var BeforeShow_ProcBefore :tPrc[];
+  var BeforeShow_ProcAfter :tPrc[];
+
+--  var BeforeShowBeginModifyOn :Logical;
+
+--  proc BeforeShow;
+--    if ЕстьПравоНаОткрытие(self):
+--      Inherited BeforeShow;
+--    else
+--      Com.Frm.Dlgs.Message('Нет прав на открытие бланка!');
+--      abort;
+--    fi;
+--  end;
+
+
+  proc BeforeShow;
+    if RuleCanOpen(self):
+      CalkStack(BeforeShow_ProcBefore);
+      extended BeforeShow;
+      CalkStack(BeforeShow_ProcAfter);
+      if not WebSide:
+        if BeforeShowWindowStyle = BlockedWindow: -- проброс параметров для обычных бланков
+          TplForm.Window.RestoreSize = WindowRestoreSize;
+          TplForm.Window.RestorePos = WindowRestorePos;
+        else
+          if BeforeShowWindowStyle = DockedWindow:
+            TplForm.Window.DockAlign = WindowDockedAlign;
+            TplForm.Window.RestoreSize = WindowRestoreSize;
+            TplForm.Window.RestorePos = WindowRestorePos;
+          fi;
+        fi;
+      fi;
+      BeforeShowWindowStyle = AutoDetect;
+    else -- отказ на открытие формы
+      Com.Frm.Dlgs.Message('Нет прав на открытие формы ['+Self.ClassName+']'+chr(13)+Self.Caption, dtWarning);
+      if not WebSide:
+        (Self as variant).fform = nil; -- т.к. выполним abort, - а десктопный бланк уже создан, то чистим ссылку на него десктопный бланк
+      fi;
+      abort;
+    fi;
+  end;
+
+--    - Свойства Maximize/Minimize работают для Stacked форм
+--    - Если Docked форма лежит на Side-хосте то Minimize=True скрывает Side-хост
+--    - Свойство DockAlign динамически обновляется при перемещении Docked-форм
+
+
+
+--  #Help `  костыль т.к. у ДИЦ  закоментированы 3 строчки в Com\Classes\Frm\ExtIForm.com
+--           ждем пока исправят !!! - тогда перекрывать метод не надо
+--             proc SetCaption( aCaption :String );
+--               extended SetCaption(aCaption);
+--               --    3if FForm <> nil then
+--               --    3  FForm.Window.Caption = FCaption;   -- Voc.Txt(aCaption);
+--               --    3end;
+--         `;
+--  proc SetCaption( aCaption :String );
+--     extended SetCaption(aCaption);
+--     if TplObject <> nil then
+--       TplObject.Window.Caption = caption;
+--     fi;
+--  end;
+
+
+--proc SaveBoxState(aBox :Com.Ctrl.IBox);
+--  extended SaveBoxState(aBox);
+--end;
+
+
+inobject private
+  --var fModifying        :Integer;
+
+
+end

@@ -1,0 +1,10 @@
+﻿class "Локальные имена для проекта CTUL";
+
+inclass public
+
+  var WebSide :Boolean := ProcessInfo.Side <> 0;
+  var ProjectName    :String := ClassProject;
+  var CTULAttachmentDir :String := "%Projects%\" + ProjectName + "\Attachment\";
+  var CTULIconsDir :String := Com.utils.IconsFolder( ProjectName );
+
+end

@@ -6,6 +6,7 @@ import Com.Def, Com.Consts, Com.Lib;
 
 inclass public
 
+
   #Help `Приводит aObject к типу LinkTable.Base или создает новый LinkTable.Base, если aObject = nil`;
   func TSelf(aObject :Object = Create) :LinkTable.Base;
     Result = aObject as LinkTable.Base;
