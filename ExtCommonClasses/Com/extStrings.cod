@@ -51,4 +51,23 @@ inclass public
     fi;
   end;
 
+  #help `Аналог SplitString - только оставляет разделители в отдельных строках`; --
+  func SplitStringWithDelim(Expr: string; Delim: string = nil): string[];
+    var count, p, j: integer;
+    var v: string;
+    Count = ValuesCount(Expr,Delim);
+    for var i = 1..Count do
+      v = ExtractValue(Expr, i, Delim);
+      p = p + Length(v) + 1;
+      if  v <> nil:
+        j = j + 1;
+        result[j] = v;
+      fi;
+      if  Expr[p] <> nil:
+        j = j + 1;
+        result[j] = Expr[p];
+      fi;
+    od;
+  end;
+
 end

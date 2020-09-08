@@ -320,7 +320,7 @@ inobject public
         Tree = tArrayTree.create;
         with Tree do
           TreeCanSelect = DefTreeCanSelect;
-          AddItemsBy(List);
+          AddItemsBy = List;
           NormalizeTree;
           reset;
         end;

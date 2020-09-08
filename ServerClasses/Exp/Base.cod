@@ -32,26 +32,6 @@ inclass
 --    result.Calc(expr);
 --  end;
 --
-  #help `Аналог SplitString - только оставляет разделители в отдельных строках`; --
-  func SplitString(Expr: string; Delim: string = nil): string[];
-    var count, p, j: integer;
-    var v: string;
-    Count = ValuesCount(Expr,Delim);
-    for var i = 1..Count do
-      v = ExtractValue(Expr, i, Delim);
-      p = p + Length(v) + 1;
-      if  v <> nil:
-        j = j + 1;
-        result[j] = v;
-      fi;
-      if  Expr[p] <> nil:
-        j = j + 1;
-        result[j] = Expr[p];
-      fi;
-    od;
-  end;
-
-
 
 inobject public
 
@@ -183,7 +163,7 @@ inobject public
        if expr = nil:
          expr = Expression;
        fi;
-     result = ConcatString(ReplaseValSplitString(SplitString(expr, delim),ReplaseVal,ReplaseFn));
+     result = ConcatString(ReplaseValSplitString(Com.Strings.SplitStringWithDelim(expr, delim),ReplaseVal,ReplaseFn));
   end;
 
   #Help `  Служебная функция замены значения
@@ -351,7 +331,7 @@ inobject private
       InsertInArray(FCache, row, [Expr, NewValue, 0]);
     fi;
     if NewValue = nil:
-      FCache[row,2] = ParseSplitString(SplitString(Expr,delim));
+      FCache[row,2] = ParseSplitString(Com.Strings.SplitStringWithDelim(Expr, delim));
     fi;
     Result = FCache[row,2] as string[];
   end;

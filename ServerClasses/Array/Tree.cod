@@ -6,14 +6,16 @@ inclass public
 --{{ inclass public
   type tArrayTree = Array.Tree;
   func Create: tArrayTree;
-    result = inherited Create;
+    result = inherited Create as tArrayTree;
   end;
 
---  func CreateEx synonym New (): Массив.Tree;
---    result = inherited Create;
---  end;
+  func CreateEx synonym New (Param :storage = nil): tArrayTree;
+    result = Create;
+    Com.Lib.SetParam(result, Param);
+  end;
 
 
+  --Com.Strings.SplitStringWithDelim(expr, delim)
   --------------------------------------------------------------------------------------
   ------------------- константы номеров столбцов в массиве FItems ----------------------
 
@@ -195,50 +197,86 @@ inobject public
   var IconsDir :String := "%Projects%\" + ClassProject + "\Attachment\Icons\";
   var ImageDefCurrent :integer:= if(webside,1,1); -- по умолчанию вместо картинок - символы WingDings
 
-  func SetImageDef(aFont, aSelect, aCloseGroup, aCloseGroupNil, aOpenGroup, aElem, aFont1: string = nil; aSize, aColor: integer = nil; aBold, aItalic: logical = nil) :variant[];
-    result[ImageDefFont          ] = aFont;
-    result[ImageDefSelect        ] = aSelect;
-    result[ImageDefCloseGroup    ] = aCloseGroup;
-    result[ImageDefCloseGroupNil ] = aCloseGroupNil;
-    result[ImageDefOpenGroup     ] = aOpenGroup;
-    result[ImageDefElem          ] = aElem;
-    result[ImageDefElemFont      ] = aFont1;
-    result[ImageDefElemFontSize  ] = aSize;
-    result[ImageDefElemFontColor ] = aColor;
-    result[ImageDefElemFontBold  ] = aBold;
-    result[ImageDefElemFontItalic] = aItalic;
+  func SetImageDef(aParam :Storage) :variant[];
+    if aParam <> nil:
+      if aParam.FieldExists('Name'):
+        result[ImageDefFont          ] = aParam.Name;
+      fi;
+      if aParam.FieldExists('Select'):
+        result[ImageDefSelect        ] = aParam.Select;
+      fi;
+      if aParam.FieldExists('CloseGroup'):
+        result[ImageDefCloseGroup    ] = aParam.CloseGroup;
+      fi;
+      if aParam.FieldExists('CloseGroupNil'):
+        result[ImageDefCloseGroupNil ] = aParam.CloseGroupNil;
+      fi;
+      if aParam.FieldExists('OpenGroup'):
+        result[ImageDefOpenGroup     ] = aParam.OpenGroup;
+      fi;
+      if aParam.FieldExists('Elem'):
+        result[ImageDefElem          ] = aParam.Elem;
+      fi;
+      if aParam.FieldExists('ElemFont'):
+        result[ImageDefElemFont      ] = aParam.ElemFont;
+      fi;
+      if aParam.FieldExists('ElemFontSize'):
+        result[ImageDefElemFontSize  ] = aParam.ElemFontSize;  -- integer
+      fi;
+      if aParam.FieldExists('ElemFontColor'):
+        result[ImageDefElemFontColor ] = aParam.ElemFontColor; -- integer
+      fi;
+      if aParam.FieldExists('ElemFontBold'):
+        result[ImageDefElemFontBold  ] = aParam.ElemFontBold;  -- Logical
+      fi;
+      if aParam.FieldExists('ElemFontItalic'):
+        result[ImageDefElemFontItalic] = aParam.ElemFontItalic;-- Logical
+      fi;
+    fi;
   end;
 
   #Help ' Добавляет новый вариант картинок для разных состояний';
-  func RegImageDef(aFont, aSelect, aCloseGroup, aCloseGroupNil, aOpenGroup, aElem, aFont1: string = nil; aSize, aColor: integer = nil; aBold, aItalic: logical = nil) :integer;
-    result = SearchInArray(ImageDef,aFont,[1]);
+--  func RegImageDef(aFont, aSelect, aCloseGroup, aCloseGroupNil, aOpenGroup, aElem, aFont1: string = nil; aSize, aColor: integer = nil; aBold, aItalic: logical = nil) :integer;
+  func RegImageDef(aParam :Storage) :integer;
+    result = FindImageDef(aParam.Name as String);
     if result < 1:
       result = LengthOfArray(ImageDef) + 1;
     fi;
-    ImageDef[result] = SetImageDef(aFont, aSelect, aCloseGroup, aCloseGroupNil, aOpenGroup, aElem,aFont1,aSize,aColor,aBold,aItalic);
+    ImageDef[result] = SetImageDef(aParam);
+  end;
+
+  func FindImageDef(aName :String) :integer;
+    result = SearchInArray(ImageDef, aName, [ImageDefFont]);
   end;
 
 
   var ImageDef :variant[2]:=
-  [SetImageDef('ImageName' --  ImageName = не шрифт а картинки
-               ,IconsDir+'PostClose'  -- галка в круге
---               ,IconsDir+'Tasks'  -- галка в круге
-               ,IconsDir+'AddFolder'  -- папка закрытая с плюсом внутри
-               ,IconsDir+'Folder'  -- папка закрытая
-               ,IconsDir+'OpenFolder'  -- папка открытая
-               ,IconsDir+'Form'  -- страничка с текстом
-               ,''
-               ,0
-               )
-  ,SetImageDef('WingDings'
-               ,'ü' -- галка
-               ,'0' -- папка закрытая
-               ,'0' -- папка закрытая
-               ,'1' -- папка открытая
-               ,'2' -- страничка с текстом
-               ,''
-               ,0
-               )
+  [SetImageDef(Com.Utils.CreateStorage(
+               ['Name'          ,'ImageName'           -- не шрифт а картинки
+               ,'Select'        ,IconsDir+'PostClose'  -- галка в круге
+               ,'CloseGroup'    ,IconsDir+'AddFolder'  -- папка закрытая с плюсом внутри
+               ,'CloseGroupNil' ,IconsDir+'Folder'     -- папка закрытая
+               ,'OpenGroup'     ,IconsDir+'OpenFolder' -- папка открытая
+               ,'Elem'          ,IconsDir+'Form'       -- страничка с текстом
+               ,'ElemFont'      ,''
+               ,'ElemFontSize'  ,0
+--               ,'ElemFontColor' ,
+--               ,'ElemFontBold'  ,
+--               ,'ElemFontItalic'
+               ]))
+  ,SetImageDef(Com.Utils.CreateStorage(
+               ['Name'          ,'WingDings'           -- шрифт
+               ,'Select'        ,'ü' -- галка
+               ,'CloseGroup'    ,'0' -- папка закрытая
+               ,'CloseGroupNil' ,'0' -- папка закрытая
+               ,'OpenGroup'     ,'1' -- папка открытая
+               ,'Elem'          ,'2' -- страничка с текстом
+               ,'ElemFont'      ,''
+               ,'ElemFontSize'  ,0
+--               ,'ElemFontColor' ,
+--               ,'ElemFontBold'  ,
+--               ,'ElemFontItalic'
+               ]))
   ];
 --  var WingDings_Select :string = 'þ'; -- галка в квадрате
 --  var WingDings_UnSelect :string = '¨'; -- пустой квадрат
@@ -313,6 +351,7 @@ inobject public
   #Help `  max level - для автоподсчета ширины`;
   TreeMaxLevel :integer;
   #Help `  max level - для автоподсчета ширины`;
+
   func GetTreeMaxLevel :integer;
     var p: integer;
     p = position;
@@ -324,6 +363,7 @@ inobject public
     od;
     position = p;
   end;
+
   var TreeWidth :func(aColumn :integer) :numeric:=
     func(aColumn :integer) :numeric
       if aColumn = 0:
@@ -353,6 +393,7 @@ inobject public
 
   #Help `  максимальная по длине Code с учетом level- для автоподсчета ширины`;
   TreeMaxWidth :numeric;
+
   #Help `  максимальная по длине Code с учетом level- для автоподсчета ширины`;
   func GetTreeMaxWidth :numeric;
     var p: integer;
@@ -378,6 +419,7 @@ inobject public
 
   #Help `  максимальная по длине Code с учетом level- для автоподсчета ширины`;
   MaxColumnsWidth :numeric;
+
   #Help `  максимальная по длине колонок для автоподсчета ширины`;
   func GetMaxWidthColumns(cols :integer[] = nil) :numeric;
     var p: integer;
@@ -434,18 +476,13 @@ inobject public
 
   #Help ` Вернет наименование по значению из TreeOrder`;
   var extNameByTreeOrder :func (ValueOrder :string) :string;
+
   #Help ` Вернет наименование группы по значению из TreeOrder`;
   var extCodeNameByTreeOrder :func (ValueOrder :string) :string;
 
-  #Help `  Заполняет items по данным из списка строк
+  #Help `  Заполняет items по данным из списка присвоенных строк
            Данные добаляются уже по структуре tree в конец массива items`;
-  proc AddItemsBy(aValues :variant[2]);
-    var z :integer;
-    z = LengthOfArray(FItems);
-    for var i = 1..LengthOfArray(aValues) do
-      FItems[i+z]=ItemBy(aValues[i]);
-    od;
-  end;
+  var AddItemsBy :variant = nil set @_AddItemsBy;
 
   #Help `  Проставляет Childs по подготовленной структуре
            в которой нет недостающих групп`;
@@ -726,16 +763,9 @@ inobject public
     Return norm;
   end;
 
+  #Help `  Процедурное свойство - Нормализует(добавляет/рассчитывает) Groups, Owner, Childs, TreeMaxLevel, TreeMaxWidth`;
+  var NormalizeTree :Variant = nil set @_NormalizeTree;
 
-  #Help `  Нормализует(добавляет/рассчитывает) Groups, Owner, Childs, TreeMaxLevel, TreeMaxWidth`;
-  proc NormalizeTree;
-    FItems = NormalizeGroups; -- меняем напрямую - т.к. количество колонок не меняется
-    NormalizeOwnerAfterNormalizeGroups;
-    NormalizeChilds;
-    TreeMaxLevel = GetTreeMaxLevel;
-    TreeMaxWidth = GetTreeMaxWidth;
-    --NormalizeVisible; -- отвечает за первичную прорисовку. Пока не прорисаван шаблон не применять
-  end;
 
 --}}---------------  методы для заполнения дерева ----------------
 
@@ -1202,14 +1232,63 @@ inobject private
       item[TreeVisible] = Value;
     end;
 
+    #Help `  Нормализует(добавляет/рассчитывает) Groups, Owner, Childs, TreeMaxLevel, TreeMaxWidth`;
+    proc _NormalizeTree(aValue :Variant = nil); -- фиктивный aValue  - нужен т.к. это setter
+      FItems = NormalizeGroups; -- меняем напрямую - т.к. количество колонок не меняется
+      NormalizeOwnerAfterNormalizeGroups;
+      NormalizeChilds;
+      TreeMaxLevel = GetTreeMaxLevel;
+      TreeMaxWidth = GetTreeMaxWidth;
+      --NormalizeVisible; -- отвечает за первичную прорисовку. Пока не прорисаван шаблон не применять
+    end;
+
+    #Help `  Заполняет items по данным из списка присвоенных строк
+             Данные добаляются уже по структуре tree в конец массива items`;
+    proc _AddItemsBy(aValues :variant);
+      var z :integer;
+      var asVariant2 :Variant[2];
+      var StyleList :List;
+      z = LengthOfArray(FItems);
+      if aValues is Storage and aValues <> nil:
+        var asStorage :Storage = aValues as Storage;
+        if asStorage.FieldExists('AddImageStyle'):
+          var AddImageStyle :Storage = asStorage.AddImageStyle as Storage;
+          for var j = 1..AddImageStyle.Count do
+            RegImageDef(AddImageStyle.ItemsByNumber[j] as Storage);
+          od;
+        fi;
+        if asStorage.FieldExists('AddValues'):
+          if asStorage.AddValues is Variant[2]:
+            asVariant2 = asStorage.AddValues as Variant[2];
+          fi;
+        fi;
+        if asStorage.FieldExists('AddValuesStyles'):
+          if asStorage.AddValuesStyles is List:
+            StyleList = asStorage.AddValuesStyles as List;
+          fi;
+        fi;
+      elsif aValues is Variant[2]:
+        asVariant2  = aValues as Variant[2];
+      fi;
+
+      if StyleList <> nil:
+        for var i = 1..LengthOfArray(asVariant2) do
+          FItems[i+z] = ItemBy(asVariant2[i], if(StyleList[i] = nil, nil, StyleList[i] as storage) );
+        od;
+      else
+        for var i = 1..LengthOfArray(asVariant2) do
+          FItems[i+z] = ItemBy(asVariant2[i]);
+        od;
+      fi;
+    end;
 
   #Help `  Преобразует строковый массив [Code :string, Name_1 :string, Name_2 :string,...]
            в данные по соответствию структуре tree`;
-    func ItemBy(aValues :variant[]) :variant[];
+    func ItemBy(aValues :Variant[]; style :Storage = nil) :variant[];
       var tmpS, CurrentPath, CurrentElem :string;
       var CurrentIsGroup :logical;
       var CurrentLevel :integer;
-      tmpS = aValues[1];
+      tmpS = aValues[1] as string;
       CurrentIsGroup  = tmpS[Length(tmpS)] = ls;
       CurrentLevel    = WordsCount(tmpS, ls) - 1; -- уровень группы к которой относится текущий элемент/группа
       CurrentPath     = ExtractWords(tmpS, 1, CurrentLevel, ls);
@@ -1236,6 +1315,17 @@ inobject private
       for var j = 4..LengthOfArray(aValues) do -- дописываем дополнительные колонки после первых трех обязательных
         result[TreeAdd+j-4] = aValues[j];
       od;
+      if style <> nil:
+        if style.FieldExists('TreeImage'):
+          result[TreeImage] = style.TreeImage;
+        fi;
+        if style.FieldExists('TreeFont'):
+          result[TreeFont] = style.TreeFont;
+        fi;
+        if style.FieldExists('TreeFontGroup'):
+          result[TreeFontGroup] = style.TreeFontGroup;
+        fi;
+      fi;
     end;
 
 

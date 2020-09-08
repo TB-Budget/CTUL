@@ -1,0 +1,119 @@
+﻿class inherited Array.Tree "Дерево ошибок" synonym ДеревоОшибок;
+import classes Array.Lib;
+--import Sconsole;
+import Sys.Consts;
+
+inclass public
+--{{ inclass public
+  type tArrayTreeError = Array.TreeError;
+  func Create: tArrayTreeError;
+    result = inherited Create;
+    result.ls = chr(1);
+  end;
+
+
+--}}  inclass public
+
+
+
+inclass private
+
+
+inobject public
+
+  var ls          :string:= chr(1); -- разделитель групп
+
+
+  -- параметры вывода
+  var ImageDef :variant[2]:=
+  [SetImageDef(Com.Utils.CreateStorage(
+               ['Name'          ,'ImageName'           -- не шрифт а картинки
+               ,'Select'        ,IconsDir+'PostClose'  -- галка в круге
+               ,'CloseGroup'    ,IconsDir+'AddFolder'  -- папка закрытая с плюсом внутри
+               ,'CloseGroupNil' ,IconsDir+'Folder'     -- папка закрытая
+               ,'OpenGroup'     ,IconsDir+'OpenFolder' -- папка открытая
+               ,'Elem'          ,IconsDir+'Error'
+               ,'ElemFont'      ,''
+               ,'ElemFontSize'  ,0
+--               ,'ElemFontColor' ,
+--               ,'ElemFontBold'  ,
+--               ,'ElemFontItalic'
+               ]))
+  ,SetImageDef(Com.Utils.CreateStorage(
+               ['Name'          ,'WingDings'           -- шрифт
+               ,'Select'        ,'ü' -- галка
+               ,'CloseGroup'    ,'0' -- папка закрытая
+               ,'CloseGroupNil' ,'0' -- папка закрытая
+               ,'OpenGroup'     ,'1' -- папка открытая
+               ,'Elem'          ,IconsDir+'Error'
+               ,'ElemFont'      ,''
+               ,'ElemFontSize'  ,0
+               ,'ElemFontColor' ,clRed
+               ,'ElemFontBold'  ,true
+--               ,'ElemFontItalic'
+               ]))
+  ,SetImageDef(Com.Utils.CreateStorage(
+               ['Name'          ,'ImageName'           -- не шрифт а картинки
+               ,'Select'        ,IconsDir+'PostClose'  -- галка в круге
+               ,'CloseGroup'    ,IconsDir+'AddFolder'  -- папка закрытая с плюсом внутри
+               ,'CloseGroupNil' ,IconsDir+'Folder'     -- папка закрытая
+               ,'OpenGroup'     ,IconsDir+'OpenFolder' -- папка открытая
+               ,'Elem'          ,IconsDir+'Warning'
+               ,'ElemFont'      ,''
+               ,'ElemFontSize'  ,0
+--               ,'ElemFontColor' ,
+--               ,'ElemFontBold'  ,
+--               ,'ElemFontItalic'
+               ]))
+  ,SetImageDef(Com.Utils.CreateStorage(
+               ['Name'          ,'WingDings'           -- шрифт
+               ,'Select'        ,'ü' -- галка
+               ,'CloseGroup'    ,'0' -- папка закрытая
+               ,'CloseGroupNil' ,'0' -- папка закрытая
+               ,'OpenGroup'     ,'1' -- папка открытая
+               ,'Elem'          ,IconsDir+'Warning'--  ,'⚠ ' -- страничка с текстом   ⮿   ⯑  ߗ  ߗ` ߗΠߛƠ⊕ ⚠   ߞ΍
+               ,'ElemFont'      ,''
+               ,'ElemFontSize'  ,0
+               ,'ElemFontColor' ,0x10C0C0 -- ЖЕЛТЫЙ
+               ,'ElemFontBold'  ,true
+--               ,'ElemFontItalic'
+               ]))
+  ];
+
+
+  var ErrorStyle :integer:= if(webside,2,1); -- по умолчанию вместо картинок - символы WingDings
+  var WarningStyle :integer:= if(webside,4,3); -- по умолчанию вместо картинок - символы WingDings
+  var ErrorCount :integer;
+  var WarningCount :integer;
+
+  proc AddErrorControl(CompID :String; CtrlName :string = nil; SortLevel: integer = nil; ImageStyle :integer = ErrorStyle);
+    AddItemsBy = [['Z'+ls+'ERROR'+ls+chr(SortLevel+2)+CompID, CtrlName, '>> [Х] <<']];
+    position = Count;
+    Image = ImageStyle;
+    ErrorCount = ErrorCount + 1;
+  end;
+  proc AddWarningControl(CompID :String; CtrlName :string = nil; SortLevel: integer = nil; ImageStyle :integer = WarningStyle);
+    AddItemsBy = [['Z'+ls+'WARNING'+ls+chr(SortLevel+2)+CompID, CtrlName, '>> [!] <<']];
+    position = Count;
+    Image = ImageStyle;
+    WarningCount = WarningCount + 1;
+  end;
+
+  func CompID :string;
+    return System.Delete(item[Elem],1,1);
+  end;
+
+  func  NormalizeGroups :variant[2];
+    AddItemsBy = [['Z'+ls             ,'Список несоответствий','Переход к несоответствию']];
+    if ErrorCount > 0:
+      AddItemsBy = [['Z'+ls+'ERROR'+ls  ,'Ошибки!',' всего: '+str(ErrorCount)]];
+    fi;
+    if WarningCount > 0:
+      AddItemsBy = [['Z'+ls+'WARNING'+ls,'Внимание!',' всего: '+str(WarningCount)]];
+    fi;
+    result = inherited NormalizeGroups;
+  end;
+
+inobject private
+
+end

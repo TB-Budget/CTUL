@@ -57,7 +57,7 @@ func CreateTreeChooseFile(FileList :Variant[2];  aCellTextWidth :variant; MultiS
         AnyCell = aCellTextWidth;
       fi;
     fi;
-    AddItemsBy(FileList);
+    AddItemsBy = FileList;
     NormalizeTree;
     reset;
   end;

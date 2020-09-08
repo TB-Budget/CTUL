@@ -41,9 +41,11 @@ inclass public
     if aObj <> nil and xArgs <> nil:
       for var i  = 1..xArgs.Count do
         var vField :String = xArgs.IndexByNumber[i];
-        var vValue :Variant = xArgs.ItemsByNumber[i];
-        if ReWrite or (aObj_isStorage and not aObj_asStorage.FieldExists(vField)) or (GetDerefField(aObj, vField) = nil):
-          SetDerefField(aObj, vField, vValue);
+        if vField <> nil: -- учитываем удаленные поля (у них vField = nil)
+          var vValue :Variant = xArgs.ItemsByNumber[i];
+          if ReWrite or (aObj_isStorage and not aObj_asStorage.FieldExists(vField)) or (GetDerefField(aObj, vField) = nil):
+            SetDerefField(aObj, vField, vValue);
+          fi;
         fi;
       od;
     fi;
