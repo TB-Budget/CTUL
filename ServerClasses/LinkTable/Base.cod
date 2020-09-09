@@ -42,8 +42,12 @@ inclass public
   func NewLinkTable(ParentIFrame : IFrame; aName :String = ""; aLinkTableParam :Storage = nil; aPrevious :IControl = nil ) :LinkTable.Base;
     with ParentIFrame do
       if aName = "":
-        aName = FID + "_Subframe" + Str(FramesCount + 1);
-      end;
+        #if Build >= 10333 then
+          aName = FID + "_Subframe" + Str(Components.Count + 1);
+        #else
+          aName = FID + "_Subframe" + Str(FramesCount + 1);
+        #end
+      fi;
       Result = TSelf(AddFrame( Self.CreateEx(Owner.ConstructID(Sys.Vocabulary.Voc.Key(aName))), aPrevious ));
       SetParam(Result, aLinkTableParam);
     end;

@@ -77,8 +77,14 @@ inobject public
 
   #Override;
   proc SetItem(aIndex :Integer; aValue :Variant);
+    var isEqual: logical;
+    #if Build >= 10333 then
+      isEqual = (Compare(TValue(FValue)[aIndex, ValueColumn], aValue) = 0);
+    #else
+      isEqual = Compare(TValue(FValue)[aIndex, ValueColumn], aValue);
+    #end
     if FItemChanged = 0:
-      if Compare(TValue(FValue)[aIndex, ValueColumn], aValue):
+      if isEqual:
         FItemChanged = 1; --Compare вернет true
       else
         FItemChanged = -1; --Compare вернет false и NeedSync будет = true
@@ -148,9 +154,17 @@ inobject private
 
     if VarType(aValue) = VarArray:
       if FValue = nil:
-        Result =  Compare(0, LengthOfArray(aValue as variant[]));
+        #if Build >= 10333 then
+          Result = (Compare(0, LengthOfArray(aValue as variant[])) = 0);
+        #else
+          Result = Compare(0, LengthOfArray(aValue as variant[]));
+        #end
       else
-        Result =  Compare(TValue(FValue).Column[ValueColumn], aValue as variant[]);
+        #if Build >= 10333 then
+          Result = (Compare(TValue(FValue).Column[ValueColumn], aValue as variant[]) = 0);
+        #else
+          Result = Compare(TValue(FValue).Column[ValueColumn], aValue as variant[]);
+        #end
       fi;
     else
       Result = inherited CompareValue(aValue);
