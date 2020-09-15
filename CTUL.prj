@@ -6,7 +6,6 @@
     <Project Name="TUL"/>
   </Usage>
   <Groups>
-    <Group Name="CommonClasses" Type="Classes" Disabled="False"/>
     <Group Name="ExtCommonClasses" Type="Classes" Disabled="False"/>
     <Group Name="ExtServerClasses" Type="Classes" Disabled="False"/>
     <Group Name="ServerClasses" Type="Classes" Disabled="False"/>
