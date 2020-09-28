@@ -45,6 +45,10 @@ inobject public
   #Help ` Получить копию всего FItems/ записать целиком FItems`;
   var Source :variant[2] get @GetSource set @SetSource;
 
+  #Help `Это хранилище имен столбцов
+         "ИмяСтолбца" :НомерСтолбца`;
+  var ColName Synonym CN :Storage := Storage.Create;
+
   proc IniItems(NewItems :variant[2]; NewColumnsCount :integer = nil);
     FItems = NewItems;
     if NewColumnsCount = 0:

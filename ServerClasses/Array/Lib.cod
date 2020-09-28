@@ -71,6 +71,14 @@ inclass public
       fi;
   end;
 
+  #Help `  Вычисляет максимальное значение из длин массивов из которых состоит InArray`;
+  func MaxLengthOfArrays(var InArray: Variant[]) :Integer;
+    for var j = 1..LengthOfArray(InArray) do
+      if VarType(InArray[j]) = VarArray:
+        Result = max([Result, LengthOfArray(AsArrayV(InArray[j]))]);
+      fi;
+    od;
+  end;
 
 
     #Help `  Вычислит очередной Position методом деления пополам для отрезка [aFrom, aTo]`;
