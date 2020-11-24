@@ -193,6 +193,8 @@ inobject private
     fi;
   end;
 
+inobject public
+
   #Warning 'Казунин: сделать перебор компонент наследников BudgBiz.Fld.IArrayObj и для каждого .NeedSync = true и TableRowsCount = max[FArrayLinks1.Count,FArrayLinks2.Count,...]';
   proc UdateEdtRecLinkTable;
     FArrayLinks.NeedSync = true;
