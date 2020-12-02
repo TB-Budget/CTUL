@@ -112,6 +112,12 @@ inobject public
     end;
   end;
 
+  #Help `  Добавление вычислимого столбца в таблицу, отражающую записи, имеющие ссылку на редактируемую.`;
+  func AddCalcLinkCol(aLabel :String = ""; aWidth :Numeric = 0; aFieldName :String; aType :VarTypes = varString) :IControlCell;
+     Result = AddCol( aLabel, aWidth, aType, aFieldName);
+  end;
+
+
 --  var ReversLinkFieldName: string;
 --  var ReversLinkSortingRule: string;
 
