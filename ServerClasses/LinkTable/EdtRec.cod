@@ -208,9 +208,5 @@ inobject public
     TableAddUnloadedState;
   end;
 
-  #warning "@Временно!!! Добавлено, чтобы скомпилировалось";
-
-  func AddCalcLinkCol(aLabel :String = ""; aWidth :Numeric = 0; aLookupField :String = ""; locVarType: system.VarTYPES): variant;
-  end;
 
 end
