@@ -73,8 +73,12 @@ inobject private
     func GetItem(aRow :integer) :variant;
       result = _Stack[aRow];
     end;
+    #if version < 10.4 then
     proc SetItem(aRow :integer; aValue :variant);
-      _Stack[aRow] = aValue;
+    #else
+    proc SetItem(aValue :variant; aRow :integer);
+    #end
+      _Stack[aRow] =  aValue;
     end;
 
     func GetSource :variant[];

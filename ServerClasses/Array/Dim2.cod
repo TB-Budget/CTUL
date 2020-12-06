@@ -335,13 +335,21 @@ inobject private
       return FItems[FPosition];
     end;
     proc SetCurrent(aValue :variant[]);
+      #if version < 10.4 then
       SetRow(FPosition, aValue);
+      #else
+      SetRow(aValue, FPosition);
+      #end
     end;
 
     func GetRow(aRow :integer) :variant[];
       result = FItems[aRow];
     end;
+    #if version < 10.4 then
     proc SetRow(aRow :integer; aValue :variant[]);
+    #else
+    proc SetRow(aValue :variant[]; aRow :integer);
+    #end
       FItems[aRow] = aValue;
       if LengthOfArray(aValue) > FColumnsCount:
         FColumnsCount = LengthOfArray(aValue);
@@ -351,7 +359,11 @@ inobject private
     func GetColumn(aColumn :integer) :variant[];
       result = ArrayDim2_GetColumn(FItems, aColumn);
     end;
+    #if version < 10.4 then
     proc SetColumn(aColumn :integer; aValue :variant[]);
+    #else
+    proc SetColumn(aValue :variant[]; aColumn :integer);
+    #end
       ArrayDim2_SetColumn(FItems, aColumn, aValue);
       if FColumnsCount < aColumn:
         FColumnsCount = aColumn;
@@ -363,7 +375,11 @@ inobject private
       result = FItems[FPosition,aColumn];
     end;
     #Help ` запишет в Items[Position,aColumn]`;
+    #if version < 10.4 then
     proc SetItem(aColumn :integer; aValue :variant);
+    #else
+    proc SetItem(aValue :variant; aColumn :integer);
+    #end
       FItems[FPosition,aColumn] = aValue;
       if aColumn > FColumnsCount:
         FColumnsCount = aColumn;
@@ -373,7 +389,11 @@ inobject private
     func GetItems(aRow, aColumn :integer) :variant;
       result = FItems[aRow,aColumn];
     end;
+    #if version < 10.4 then
     proc SetItems(aRow, aColumn :integer; aValue :variant);
+    #else
+    proc SetItems(aValue :variant; aRow, aColumn :integer);
+    #end
       FItems[aRow, aColumn] = aValue;
       if aColumn > FColumnsCount:
         FColumnsCount = aColumn;
@@ -390,7 +410,11 @@ inobject private
     func GetItems3(aRow, aColumn, aIter :integer) :variant;
       result = ArrayDim2_GetItems3(FItems, aRow, aColumn, aIter);
     end;
+    #if version < 10.4 then
     proc SetItems3(aRow, aColumn, aIter :integer; aValue :variant);
+    #else
+    proc SetItems3(aValue :variant; aRow, aColumn, aIter :integer);
+    #end
       ArrayDim2_SetItems3(FItems, aRow, aColumn, aIter, aValue);
       if aColumn > FColumnsCount:
         FColumnsCount = aColumn;
