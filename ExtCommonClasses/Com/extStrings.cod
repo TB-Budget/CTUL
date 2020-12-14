@@ -13,7 +13,7 @@ inclass public
   end;
 
   #help `    Символ "табуляция", n - количество повторов`;
-  func TAB (n :integer = 1) :string;
+  func TABn (n :integer = 1) :string;
     Return RepStr(Chr(09), n);
   end;
 
