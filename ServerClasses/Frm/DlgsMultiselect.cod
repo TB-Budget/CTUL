@@ -66,11 +66,14 @@ end;
 
 #Help
 `  Äונוגמ גûבמנא פאיכמג`;
-func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :String = ''; Prompt :String = ''; Mask :String = '*.*'; aIndex :variant = nil; aCellTextWidth :variant = nil; MultiSelect :logical = true; aWindowStyles :WindowStyles = BlockedWindow) :tArrayTree;--string[];
+func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :String = ''; Prompt :String = ''; Mask :String = '*.*'; aIndex :variant = nil; aCellTextWidth :variant = nil; MultiSelect :logical = true; aWindowStyles :WindowStyles = BlockedWindow; AttachmentDir: String = '') :tArrayTree;--string[];
+  if AttachmentDir = '':
+    AttachmentDir = CTULAttachmentDir;
+  fi;
   var FileList :variant[];
   var ln :integer;
   var OldFile :string;
-  FolderNameInAttachment = CTULAttachmentDir + FolderNameInAttachment;
+  FolderNameInAttachment = AttachmentDir + FolderNameInAttachment;
   ln = length(FolderNameInAttachment);
   FileList = GetFileList(FolderNameInAttachment, Mask, [FindOnlyFiles, RecursiveFind]);
   for var j = 1..LengthOfArray(FileList) do
