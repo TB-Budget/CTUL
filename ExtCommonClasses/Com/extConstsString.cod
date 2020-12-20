@@ -33,12 +33,21 @@ const utf8CRLF :string =
 `
 `;--chr(13)+chr(10);
 
-const WingDings2WhiteSquare   :string = '0'; --Chr(0xA3)- квадрат пустой
---const WingDings2WhiteSquare   :string = '£'; --Chr(0xA3)- квадрат пустой
-const WingDings2BallotSquare  :string = 'R'; --Chr(0x52)- квадрат галка
-const WingDings2GroupSelAll   :string = WingDings2BallotSquare + utf8CRLF + WingDings2BallotSquare;
-const WingDings2GroupUnSelAll :string = WingDings2WhiteSquare  + utf8CRLF + WingDings2WhiteSquare; -- ' —'
-const WingDings2GroupSelHalf  :string = WingDings2BallotSquare + utf8CRLF + WingDings2WhiteSquare;
-const WingDings2ElemSel       :string = WingDings2BallotSquare;
-const WingDings2ElemUnSel     :string = WingDings2WhiteSquare;
+const WingDings2WhiteSquare    :string = '0'; --Chr(0xA3)- квадрат пустой
+--const WingDings2WhiteSquare    :string = '£'; --Chr(0xA3)- квадрат пустой
+const WingDings2BallotSquare   :string = 'R'; --Chr(0x52)- квадрат галка
+const WingDings2GroupSelAll    :string = WingDings2BallotSquare + utf8CRLF + WingDings2BallotSquare;
+const WingDings2GroupUnSelAll  :string = WingDings2WhiteSquare  + utf8CRLF + WingDings2WhiteSquare; -- ' —'
+const WingDings2GroupSelHalf   :string = WingDings2BallotSquare + utf8CRLF + WingDings2WhiteSquare;
+const WingDings2ElemSel        :string = WingDings2BallotSquare;
+const WingDings2ElemUnSel      :string = WingDings2WhiteSquare;
+
+const WingDingsPageFill             :string = '2'; -- заполненная страница
+const WingDingsWaitSand             :string = '6'; -- песочные часы
+const WingDings2Error               :string = 'W'; -- круг перечеркнутый слева сверху на низ справа
+const WingDings3ArrowRight          :string = '"'; -- стрелка простая - вправо
+const WingDings3ArrowLeft           :string = '!'; -- стрелка простая - влево
+const WingDings3ArrowBackRight      :string = 'B'; -- стрелка с возвратом - вправо
+const WingDings3ArrowBackLeft       :string = 'C'; -- стрелка с возвратом - влево
+const WingDings3ArrowBlockLeftRight :string = 'F'; -- стрелки в обе стороны с блоком
 end
