@@ -1,0 +1,170 @@
+extends Com.Ctrl.IControl;
+Import Com.Utils, Com.Lib;
+--Link:Sys.Consts   -- цвета
+--Link:Com.Consts
+--Link:Com.extConsts  -- типы Tpl и прочие типы
+
+--линки на расширения
+--Link:Com.Ctrl.IControl  -- Базовый класс
+--Link:Com.Ctrl.extIControl  --  Расширение для клиента
+
+inclass public
+  type tOnChangeStyle = func (aSelf :Com.Ctrl.IControl; aStyle :Storage; aIndex :Integer) :Logical;
+
+  #Help `Хранилище(регистрация) методов для изменения стиля
+         Эти методы вызываются последовательно в JsonStyleStore`;
+  var ClassOnChangeStyle :Storage := CreateStorage(['SetDefClassStyle', @SetDefClassStyle]);
+
+  #Help `Атрибуты стиля применяемые для класса/наследников Com.Ctrl.IControl
+         Применяются к стилю в методе SetDefClassStyle
+         Условие вызова SetDefClassStyle - регистрация SetDefClassStyle в ClassOnChangeStyle`;
+  var DefClassStyleValue :Storage := Storage.Create; -- {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...}
+
+#Help `Пишем в ToStyle атрибуты стилей из aAddStyle
+       Результат  - ToStyle с обновленными данными
+
+       структура aAddStyle =
+       { AttrName1: {Value :"Значение атрибута", ReWrite :true}
+       , AttrName2: {ReWrite :true}
+       ,...
+       }
+
+       При AttrName.ReWrite = true и отсутствии поля AttrName.Value
+       - удаляем в ToStyle поле с именем AttrName
+
+       при AttrName.ReWrite = true - выполняем  ToStyle.AttrName = AttrName.Value
+
+       при отсутствии поля ToStyle.AttrName - выполняем  ToStyle.AttrName = AttrName.Value
+       `;
+--  func AddStyle(aAddStyle :Storage; ToStyle :Storage) :Storage;
+  func ChangeStyle(aAddStyle :Storage; ToStyle :Storage) :Storage;
+    Result = ToStyle;
+    for var j = 1..aAddStyle.Count do
+      var AttrName :String = aAddStyle.IndexByNumber[j];
+      if AttrName <>'' and aAddStyle[AttrName] is Storage:
+        var vAttr :Storage = aAddStyle[AttrName] as Storage;
+        if vAttr.FieldExists('Value'): -- надо записать
+          if (not ToStyle.FieldExists(AttrName)) or vAttr.ReWrite as Logical:
+            var val: Variant = vAttr.Value;
+            if val is Date:
+              ToStyle[AttrName] = DateToJson(val);
+            elsif val is Integer and (match(AttrName, '*color*') or match(AttrName, '*ground*')):
+              ToStyle[AttrName] = ColorToJSON(val);
+            else
+              ToStyle[AttrName] = val;
+            fi;
+          fi;
+        else -- надо удалить
+          if ToStyle.FieldExists(AttrName) and vAttr.ReWrite as Logical: -- удаляем только с ReWrite = true
+            ToStyle.DeleteField(AttrName);
+          fi;
+        fi;
+      fi;
+    od;
+  end;
+
+
+inclass private
+  func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    aStyle = ChangeStyle(DefClassStyleValue, aStyle);
+
+    aStyle = ChangeStyle(CreateStorage
+                       (['background', CreateStorage(['Value',aSelf.Color, 'ReWrite',true])
+                        --,'color', CreateStorage(['Value',aSelf.FontColor, 'ReWrite',true]) -- Нужно  ли?
+                       ])
+                       ,aStyle
+                     );
+
+    Result = true; -- разрешаем применять последующие стили
+  end;
+
+inobject public
+ --IsPseudo :Logical;
+
+
+  #Help `Хранилище(регистрация) методов для изменения стиля текущего IControl
+         Эти методы вызываются последовательно в JsonStyleStore`;
+  var OnChangeStyle :Storage := CreateStorage(['SetDefStyle', @SetDefStyle]);
+
+  #Help `Атрибуты стиля применяемые для изменения стиля текущего IControl
+         Применяются к стилю в методе SetDefStyle
+         Условие вызова SetDefStyle - регистрация SetDefStyle в OnChangeStyle`;
+  var DefStyleValue :Storage := Storage.Create; -- {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...}
+
+  #Override;
+  func JsonStyleStore(aIndex :Integer = 1) :Storage; -- StyleParams
+    Result = extended JsonStyleStore(aIndex);
+    -- применяем стили класса
+--    try
+    for var j = 1..ClassOnChangeStyle.Count do
+      var vStyleName :String = ClassOnChangeStyle.IndexByNumber[j];
+      if vStyleName <>'' and ClassOnChangeStyle[vStyleName] is tOnChangeStyle:
+        var funcSetStyle :tOnChangeStyle = ClassOnChangeStyle[vStyleName] as tOnChangeStyle;
+        if (ClosureOwner(funcSetStyle) <> nil) and not funcSetStyle(self, Result, aIndex): -- досрочный выход если метод мприменения стиля - финальный
+          Return Result;
+        fi;
+      fi;
+    od;
+    -- применяем стили для экземпляра Com.Ctrl.IControl
+    for var j = 1..OnChangeStyle.Count do
+      var vStyleName :String = OnChangeStyle.IndexByNumber[j];
+      if vStyleName <>'' and OnChangeStyle[vStyleName] is tOnChangeStyle:
+        var funcSetStyle :tOnChangeStyle = OnChangeStyle[vStyleName] as tOnChangeStyle;
+        if (ClosureOwner(funcSetStyle) <> nil) and not funcSetStyle(self, Result, aIndex): -- досрочный выход если метод мприменения стиля - финальный
+          Return Result;
+        fi;
+      fi;
+    od;
+--    except
+--    end;
+  end;
+
+inobject private
+  func SetDefStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    aStyle = ChangeStyle(DefStyleValue, aStyle);
+    Result = true; -- разрешаем применять последующие стили
+  end;
+
+
+---- эти поля не обновляются в WebSide сразу при их изменении
+--  stored var FixSize            :Logical;
+--  stored var VertAlignment      :AlignmentTypes := CenterAlign;
+--
+--  stored var Color              :Integer get @FColor set @SetColor; -- Цвет фона - не обновляется совсем!
+--
+--
+---- эти поля обновляются в JsonStyleStore
+--  stored var Alignment          :AlignmentTypes := DefaultAlign;  -- = textAlign = JSON_Alignment(GetAlignment);
+--  stored var FontName           :String;     -- = fontFamily = FontName
+--  stored var FontSize           :Integer;    -- = FontSize   = Str(FontSize + 4) + 'px';
+--  stored var FontBold           :Logical;    -- = fontWeight = 'bold';
+--  stored var FontItalic         :Logical;    -- = fontStyle  = 'italic';
+---- эти поля не обновляются в WebSide сразу при их изменении но можно расширить @Set  - прописать в нем AddUnloadedState
+--  stored var Width              :Numeric get @GetWidth set @SetWidth;  -- = width = Width;
+--  stored var FontColor          :Integer get @FFontColor set @SetFontColor; -- = color = ColorToJSON(FontColor);
+
+
+--  #Override;
+--  proc SetColor(aColor :Integer);
+--    extended SetColor(aColor);
+--    AddUnloadedState;
+--  end;
+--
+--  #Override;
+--  proc SetFontColor(aColor :Integer);
+--    extended SetFontColor(aColor);
+--    AddUnloadedState;
+--  end;
+--
+--  #Override;
+--  func JsonViewStorage(aPrefix :String; aState :List = nil) :Storage;
+--    Result = extended JsonViewStorage(aPrefix, aState);
+--  end;
+--
+--  #Override;
+--  func JsonStateStorage(aPrefix :String) :Storage;
+--    Result = AddJsonStyle(DefJsonStyle, extended JsonStateStorage(aPrefix)); -- в extended вызывается    Result.style = JsonStyleStore;
+--  end;
+
+
+end
