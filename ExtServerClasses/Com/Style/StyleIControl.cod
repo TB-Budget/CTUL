@@ -13,14 +13,17 @@ inclass public
 
   #Help `’ранилище(регистраци€) методов дл€ изменени€ стил€
          Ёти методы вызываютс€ последовательно в JsonStyleStore`;
-  var ClassOnChangeStyle :Storage := CreateStorage(['SetDefClassStyle', @SetDefClassStyle]);
-
+  var ClassOnChangeStyle :Storage := ClassOnChangeStyleIni;
+  func ClassOnChangeStyleIni :Storage;
+    Result = CreateStorage(['SetDefClassStyle', @SetDefClassStyle]);
+  end;
   #Help `јтрибуты стил€ примен€емые дл€ класса/наследников Com.Ctrl.IControl
          ѕримен€ютс€ к стилю в методе SetDefClassStyle
          ”словие вызова SetDefClassStyle - регистраци€ SetDefClassStyle в ClassOnChangeStyle`;
   var DefClassStyleValue :Storage := Storage.Create; -- {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...}
 
-#Help `ѕишем в ToStyle атрибуты стилей из aAddStyle
+#Help `
+       ѕишем в ToStyle атрибуты стилей из aAddStyle
        –езультат  - ToStyle с обновленными данными
 
        структура aAddStyle =
@@ -32,35 +35,38 @@ inclass public
        ѕри AttrName.ReWrite = true и отсутствии пол€ AttrName.Value
        - удал€ем в ToStyle поле с именем AttrName
 
-       при AttrName.ReWrite = true - выполн€ем  ToStyle.AttrName = AttrName.Value
+       при AttrName.ReWrite = true или при отсутствии пол€ ToStyle.AttrName
+       - перезаписываем данные ToStyle.AttrName = AttrName.Value
 
-       при отсутствии пол€ ToStyle.AttrName - выполн€ем  ToStyle.AttrName = AttrName.Value
+       при AttrName.ReWrite = false и при наличии пол€ ToStyle.AttrName
+       - ничего не пишем в ToStyle.AttrName
        `;
---  func AddStyle(aAddStyle :Storage; ToStyle :Storage) :Storage;
   func ChangeStyle(aAddStyle :Storage; ToStyle :Storage) :Storage;
     Result = ToStyle;
-    for var j = 1..aAddStyle.Count do
-      var AttrName :String = aAddStyle.IndexByNumber[j];
-      if AttrName <>'' and aAddStyle[AttrName] is Storage:
-        var vAttr :Storage = aAddStyle[AttrName] as Storage;
-        if vAttr.FieldExists('Value'): -- надо записать
-          if (not ToStyle.FieldExists(AttrName)) or vAttr.ReWrite as Logical:
-            var val: Variant = vAttr.Value;
-            if val is Date:
-              ToStyle[AttrName] = DateToJson(val);
-            elsif val is Integer and (match(AttrName, '*color*') or match(AttrName, '*ground*')):
-              ToStyle[AttrName] = ColorToJSON(val);
-            else
-              ToStyle[AttrName] = val;
+    if aAddStyle <> nil:
+      for var j = 1..aAddStyle.Count do
+        var AttrName :String = aAddStyle.IndexByNumber[j];
+        if AttrName <>'' and aAddStyle[AttrName] is Storage:
+          var vAttr :Storage = aAddStyle[AttrName] as Storage;
+          if vAttr.FieldExists('Value'): -- надо записать
+            if (not ToStyle.FieldExists(AttrName)) or vAttr.ReWrite as Logical:
+              var val: Variant = vAttr.Value;
+              if val is Date:
+                ToStyle[AttrName] = DateToJson(val);
+              elsif val is Integer and (match(AttrName, '*color*') or match(AttrName, '*ground*')):
+                ToStyle[AttrName] = ColorToJSON(val);
+              else
+                ToStyle[AttrName] = val;
+              fi;
+            fi;
+          else -- надо удалить
+            if ToStyle.FieldExists(AttrName) and vAttr.ReWrite as Logical: -- удал€ем только с ReWrite = true
+              ToStyle.DeleteField(AttrName);
             fi;
           fi;
-        else -- надо удалить
-          if ToStyle.FieldExists(AttrName) and vAttr.ReWrite as Logical: -- удал€ем только с ReWrite = true
-            ToStyle.DeleteField(AttrName);
-          fi;
         fi;
-      fi;
-    od;
+      od;
+    fi;
   end;
 
 
@@ -92,6 +98,13 @@ inobject public
   var DefStyleValue :Storage := Storage.Create; -- {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...}
 
   #Override;
+  #Help `ѕоследовательно вызывает методы из ClassOnChangeStyle :Storage
+         затем из OnChangeStyle :Storage
+
+         методы: func (aSelf :Ctrl.IControl; aStyle :Storage; aIndex :Integer) :Logical;
+          - мен€ют содержимое aStyle
+          –езультат метода = false - прекращение вызова следующих методов обработки стил€
+         `;
   func JsonStyleStore(aIndex :Integer = 1) :Storage; -- StyleParams
     Result = extended JsonStyleStore(aIndex);
     -- примен€ем стили класса
@@ -100,7 +113,9 @@ inobject public
       var vStyleName :String = ClassOnChangeStyle.IndexByNumber[j];
       if vStyleName <>'' and ClassOnChangeStyle[vStyleName] is tOnChangeStyle:
         var funcSetStyle :tOnChangeStyle = ClassOnChangeStyle[vStyleName] as tOnChangeStyle;
-        if (ClosureOwner(funcSetStyle) <> nil) and not funcSetStyle(self, Result, aIndex): -- досрочный выход если метод мприменени€ стил€ - финальный
+        if ClosureOwner(funcSetStyle) = nil:
+          ClassOnChangeStyle.DeleteField(vStyleName);
+        elsif not funcSetStyle(self, Result, aIndex): -- досрочный выход если метод мприменени€ стил€ - финальный
           Return Result;
         fi;
       fi;
@@ -110,7 +125,9 @@ inobject public
       var vStyleName :String = OnChangeStyle.IndexByNumber[j];
       if vStyleName <>'' and OnChangeStyle[vStyleName] is tOnChangeStyle:
         var funcSetStyle :tOnChangeStyle = OnChangeStyle[vStyleName] as tOnChangeStyle;
-        if (ClosureOwner(funcSetStyle) <> nil) and not funcSetStyle(self, Result, aIndex): -- досрочный выход если метод мприменени€ стил€ - финальный
+        if ClosureOwner(funcSetStyle) = nil:
+          OnChangeStyle.DeleteField(vStyleName);
+        elsif not funcSetStyle(self, Result, aIndex): -- досрочный выход если метод мприменени€ стил€ - финальный
           Return Result;
         fi;
       fi;
@@ -120,6 +137,7 @@ inobject public
   end;
 
 inobject private
+  #Help `ћетод вызываемый по умолчанию дл€ текущего объекта IControl`;
   func SetDefStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
     aStyle = ChangeStyle(DefStyleValue, aStyle);
     Result = true; -- разрешаем примен€ть последующие стили
