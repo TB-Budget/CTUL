@@ -187,7 +187,14 @@ inobject private
   #Help ` Дефолтный метод для загрузки данных в массив таблицы`;
   proc DefSyncData(aIArray :LinkTable.IArraySync = FArrayLinks);
     if (aIArray.RecordClass <> nil):
-      aIArray.Value = Sys.Recs.ReadRecords((LinkParam.extIRecordClass as Class Com.Rec.IRecord).RecordClass, LinkParam.extFilter as String, LinkParam.extOrder as String, LinkParam.extFields as String, LinkParam.extDeleted as Logical); -- будет установлен NeedSync = true и AddUnloadedState
+      aIArray.Value = Sys.Recs.ReadRecords((LinkParam.extIRecordClass as Class Com.Rec.IRecord).RecordClass
+                                          , LinkParam.extFilter as String
+                                          , LinkParam.extOrder as String
+                                          , LinkParam.extFields as String
+                                          , LinkParam.extDeleted as Logical
+                                          , LinkParam.extOpt as Query.OpenHints[]
+                                          , LinkParam.aLimit as Integer
+                                          ); -- будет установлен NeedSync = true и AddUnloadedState
       aIArray.NeedSync = false; -- сбрасываем флаг, т.к. это и так полная синхронизация
     fi;
   end;
