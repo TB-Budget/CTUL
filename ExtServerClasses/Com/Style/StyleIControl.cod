@@ -72,14 +72,13 @@ inclass public
 
 inclass private
   func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
-    aStyle = ChangeStyle(DefClassStyleValue, aStyle);
-
     aStyle = ChangeStyle(CreateStorage
                        (['background', CreateStorage(['Value',aSelf.Color, 'ReWrite',true])
                         --,'color', CreateStorage(['Value',aSelf.FontColor, 'ReWrite',true]) -- Ќужно  ли?
                        ])
                        ,aStyle
                      );
+    aStyle = ChangeStyle(DefClassStyleValue, aStyle);
 
     Result = true; -- разрешаем примен€ть последующие стили
   end;
