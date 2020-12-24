@@ -24,10 +24,18 @@ inobject public
            extIRecordClass :class Com.Rec.IRecord - класс обертки сопр€женной записи;
            extLinkFieldName :string - им€ пол€, содержащего ссылку на редактируемую запись;
            extOrder :string = nil - правило сортировки (как "»м€ѕол€1;»м€ѕол€2") сопр€женных записей;
-           AddextFilter :string = nil - дополнительное условие фильтрации записей (складываетс€ по "»" с основным)`;
+           AddextFilter :string = nil - дополнительное условие фильтрации записей (складываетс€ по "»" с основным)
+           ExtParam :Storage = nil - дополнительные параметры, кроме описанных ранее`;
 --           aCreaterReversLink :func = nil -  онструктор новой сопр€женной записи`;
-  func AddEdtRecLinkTable(aName :String; extIRecordClass :class Com.Rec.IRecord; extLinkFieldName :string; extOrder, AddextFilter :string = nil) :CTUL.LinkTable.EdtRec;
-    var vLinkParam = Com.Utils.CreateStorage(['AddextFilter', AddextFilter, 'extOrder', extOrder]);
+  func AddEdtRecLinkTable(aName :String; extIRecordClass :class Com.Rec.IRecord; extLinkFieldName :string; extOrder, AddextFilter :string = nil; ExtParam :Storage = nil) :CTUL.LinkTable.EdtRec;
+    var vLinkParam :Storage;
+    if ExtParam <> nil:
+     vLinkParam = ExtParam;
+    else
+     vLinkParam = Storage.Create;
+    fi;
+    vLinkParam.AddextFilter = AddextFilter;
+    vLinkParam.extOrder = extOrder;
     Result = CTUL.LinkTable.EdtRec.NewEdtRecLinkTable(self, aName, extIRecordClass, extLinkFieldName, vLinkParam);
   end;
 
