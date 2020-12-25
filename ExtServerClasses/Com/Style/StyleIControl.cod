@@ -84,6 +84,25 @@ inclass private
   end;
 
 inobject public
+
+  #Help `Простое дублирование метода AddUnloadedState
+           но уже в видимой области - inobject public
+         Метод нужен для обновления в web зависимых IControl`;
+  proc AddUnloadedStatePublic(aState :Integer = -1);
+    AddUnloadedState(aState);
+  end;
+
+  func ChildrenIControl :Com.Ctrl.IControl[];
+    for var i = 1..Components.Count do
+      if Components[i] is Com.Ctrl.IControl:
+        var vComp :Com.Ctrl.IControl = Components[i] as Com.Ctrl.IControl;
+        ArrayAdd(Result, vComp);
+        if vComp.Components.Count > 0:
+          ArrayConcat(Result,  vComp.ChildrenIControl);
+        fi;
+      fi;
+    end;
+  end;
  --IsPseudo :Logical;
 
 
@@ -100,9 +119,9 @@ inobject public
   #Help `Последовательно вызывает методы из ClassOnChangeStyle :Storage
          затем из OnChangeStyle :Storage
 
-         методы: func (aSelf :Ctrl.IControl; aStyle :Storage; aIndex :Integer) :Logical;
+         вызываемые методы: func (aSelf :Ctrl.IControl; aStyle :Storage; aIndex :Integer) :Logical;
           - меняют содержимое aStyle
-          Результат метода = false - прекращение вызова следующих методов обработки стиля
+          Если результат вызываемого метода = false - прекращение вызова следующих методов обработки стиля
          `;
   func JsonStyleStore(aIndex :Integer = 1) :Storage; -- StyleParams
     Result = extended JsonStyleStore(aIndex);
