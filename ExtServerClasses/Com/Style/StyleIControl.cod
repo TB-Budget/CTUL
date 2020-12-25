@@ -105,6 +105,9 @@ inobject public
   end;
  --IsPseudo :Logical;
 
+  #Help `Хранилище(регистрация) дополнительных свойств IControl
+           Для динамическая типизации, - когда наследование не обязательно`;
+  var ExtProperty synonym ExtP :Storage := Storage.Create;
 
   #Help `Хранилище(регистрация) методов для изменения стиля текущего IControl
          Эти методы вызываются последовательно в JsonStyleStore`;
