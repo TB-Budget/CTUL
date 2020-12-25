@@ -1,0 +1,51 @@
+extends Com.Ctrl.IStatic "";
+Import Com.Utils, Com.Consts, Com.Lib;
+
+--линки на расширения
+--Link:Com.Ctrl.IStatic  -- Базовый класс
+inclass public
+
+  func ClassOnChangeStyleIni :Storage;
+    Result = Inherited ClassOnChangeStyleIni;
+    if Result = nil:
+      Result = Storage.Create;
+    fi;
+
+  end;
+
+  var WrapClassStyleValue :Storage := CreateStorage
+    ([ 'WrapOk', CreateStorage([ 'white-space', CreateStorage(['Value','pre-wrap', 'ReWrite',true]) ])
+     --, 'WrapNo', CreateStorage([ 'white-space', CreateStorage(['Value','pre-wrap', 'ReWrite',true]) ]) -- не добавляем стиля
+    ]);
+
+inclass private
+  func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    var vSelf = aSelf as Com.Ctrl.IStatic;
+    Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
+    if Result:
+     if vSelf.Wrap and vSelf.GetValue=nil:
+       aStyle = ChangeStyle(WrapClassStyleValue?.WrapOk, aStyle);
+     else
+       aStyle = ChangeStyle(WrapClassStyleValue?.WrapNo, aStyle);
+     fi;
+    fi;
+  end;
+
+inobject  public
+
+  var WrapStyleValue :Storage := Storage.Create;
+
+inobject  private
+  func SetDefStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    var vSelf = aSelf as Com.Ctrl.IStatic;
+    Result =  Inherited SetDefStyle(vSelf, aStyle, aIndex);
+    if Result:
+       if vSelf.Wrap and vSelf.GetValue=nil:
+         aStyle = ChangeStyle(WrapStyleValue?.WrapOk, aStyle);
+       else
+         aStyle = ChangeStyle(WrapStyleValue?.WrapNo, aStyle);
+       fi;
+    fi;
+  end;
+
+end
