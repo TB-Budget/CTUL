@@ -51,6 +51,44 @@ inclass public
     fi;
   end;
 
+  #Help `Делает копию aFrom :Storage, включая вложенные List и Storage`;
+  func CloneStorage (aFrom :Storage) :Storage;
+    if aFrom <> nil:
+      Result = Storage.Create;
+      for var j = 1..aFrom.Count do
+        var vField :String = aFrom.IndexByNumber[j];
+        if vField <> nil: -- учитываем удаленные поля (у них vField = nil)
+          var vValue :Variant = aFrom.ItemsByNumber[j];
+          if vValue is Storage:
+            Result[vField] = CloneStorage(vValue as Storage);
+          elsif vValue is List:
+            Result[vField] = CloneList(vValue as List);
+          else
+            Result[vField] = vValue;
+          fi;
+        fi;
+      od;
+    fi;
+  end;
+
+  #Help `Делает копию aFrom :List, включая вложенные List и Storage`;
+  func CloneList (aFrom :List) :List;
+    if aFrom <> nil:
+      Result = List.Create;
+      for var j = 1..aFrom.Count do
+        var vValue :Variant = aFrom[j];
+        if vValue is Storage:
+          Result[j] = CloneStorage(vValue as Storage);
+        elsif vValue is List:
+          Result[j] = CloneList(vValue as List);
+        else
+          Result[j] = vValue;
+        fi;
+      od;
+    fi;
+  end;
+
+
   #Help `Команды которые выполняются один раз для одного объекта
          срабатывает в методе AfterInit (при создании объекта)`;
   proc CmdByStack(aStack :Stack; aObj :Object);
