@@ -53,7 +53,7 @@ inclass public
               var val: Variant = vAttr.Value;
               if val is Date:
                 ToStyle[AttrName] = DateToJson(val);
-              elsif val is Integer and (match(AttrName, '*color*') or match(AttrName, '*ground*')):
+              elsif val is Integer and AttrIsColor(AttrName):
                 ToStyle[AttrName] = ColorToJSON(val);
               else
                 ToStyle[AttrName] = val;
@@ -69,6 +69,11 @@ inclass public
     fi;
   end;
 
+  func AttrIsColor(aAttrName :String) :Logical;
+    if match(aAttrName, '*color*') or match(aAttrName, '*ground*'):
+      Result = true;
+    fi;
+  end;
 
 inclass private
   func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
