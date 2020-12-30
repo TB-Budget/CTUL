@@ -1,0 +1,41 @@
+extends Com.Ctrl.IControlCell "";
+Import Com.Utils;--, Com.Consts, Com.Lib;
+
+--линки на расширения
+--Link:Com.Ctrl.IControlCell  -- Базовый класс
+inclass public
+  #Override;
+  func ClassOnChangeStyleIni :Storage;
+    Result = Inherited ClassOnChangeStyleIni;
+  end;
+
+  #Override;
+  func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
+    Result = Inherited NamedClassStyleIni;
+    if Result.NotPadding = nil:
+      Result.NotPadding = Storage.Create;
+    fi;
+    Result.NotPadding.padding = CreateStorage(['Value','0', 'ReWrite',true]); -- переписываем только свойство padding
+  end;
+
+inclass private
+  #Override;
+  func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    var vSelf = aSelf as Com.Ctrl.IControlCell;
+    Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
+    ---- дополнительные обработчики класса ----
+    if Result and aSelf.ExtP?.NotPadding as Logical:
+       aStyle = ChangeStyle(NamedClassStyle?.NotPadding, aStyle);
+    fi;
+  end;
+
+inobject  public
+
+inobject  private
+  #Override;
+  func SetDefStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    var vSelf = aSelf as Com.Ctrl.IControlCell;
+    Result =  Inherited SetDefStyle(vSelf, aStyle, aIndex);
+  end;
+
+end

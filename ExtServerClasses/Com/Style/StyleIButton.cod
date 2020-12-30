@@ -1,8 +1,8 @@
-extends Com.Ctrl.IStatic "";
+extends Com.Ctrl.IButton "";
 Import Com.Utils;-- Com.Consts, Com.Lib;
 
 --линки на расширения
---Link:Com.Ctrl.IStatic  -- Базовый класс
+--Link:Com.Ctrl.IButton  -- Базовый класс
 inclass public
 
   #Override;
@@ -13,22 +13,24 @@ inclass public
   #Override;
   func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
     Result = Inherited NamedClassStyleIni;
-    var vAdd :Storage = Result.Wrap;
+    var vAdd :Storage = Result.AsStatic;
     if vAdd = nil:
       vAdd = Storage.Create;
-      Result.Wrap = vAdd;
+      Result.AsStatic = vAdd;
     fi;
-    vAdd['white-space'] = CreateStorage(['Value','pre-wrap', 'ReWrite',true]);
+    vAdd['border'] = CreateStorage(['Value','none', 'ReWrite',true]); -- border: 1px solid #c6d3e6; - серые края кнопки
+    vAdd['padding'] = CreateStorage(['Value','0', 'ReWrite',true]);
+    vAdd['border-radius'] = CreateStorage(['Value','0', 'ReWrite',true]); -- '50%' - круглая кнопка
   end;
 
 inclass private
   #Override;
   func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
-    var vSelf = aSelf as Com.Ctrl.IStatic;
+    var vSelf = aSelf as Com.Ctrl.IButton;
     Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
     ---- дополнительные обработчики класса ----
-    if Result and (vSelf.Wrap or aSelf.ExtP?.Wrap) as Logical:
-       aStyle = ChangeStyle(NamedClassStyle?.Wrap, aStyle);
+    if Result and aSelf.ExtP?.AsStatic as Logical:
+       aStyle = ChangeStyle(NamedClassStyle?.AsStatic, aStyle);
     fi;
   end;
 

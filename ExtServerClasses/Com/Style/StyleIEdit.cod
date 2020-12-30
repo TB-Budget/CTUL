@@ -1,52 +1,35 @@
 extends Com.Ctrl.IEdit "";
-Import Com.Utils, Com.Consts, Com.Lib;
+Import Com.Utils;--, Com.Consts, Com.Lib;
 
 --линки на расширения
 --Link:Com.Ctrl.IEdit  -- Базовый класс
 --Link:Com.Ctrl.extIEdit  --  Расширение для клиента
 inclass public
 
+  #Override;
   func ClassOnChangeStyleIni :Storage;
     Result = Inherited ClassOnChangeStyleIni;
-    if Result = nil:
-      Result = Storage.Create;
-    fi;
-
   end;
 
-  var RequiredClassStyleValue :Storage := CreateStorage
-    ([ 'RequiredOk', CreateStorage([ 'borderBottom', CreateStorage(['Value','1px solid red', 'ReWrite',true]) ])
-     --, 'RequiredNo', CreateStorage([ 'borderBottom', CreateStorage(['Value','1px solid red', 'ReWrite',true]) ]) -- не добавляем стиля
-    ]);
+  #Override;
+  func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
+    Result = Inherited NamedClassStyleIni;
+    var vAdd :Storage = Result.Required;
+    if vAdd = nil:
+      vAdd = Storage.Create;
+      Result.Required = vAdd;
+    fi;
+    vAdd['borderBottom'] = CreateStorage(['Value','1px solid red', 'ReWrite',true]);
+  end;
 
 inclass private
+  #Override;
   func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
     var vSelf = aSelf as Com.Ctrl.IEdit;
     Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
-    if Result:
-     if vSelf.Required and vSelf.GetValue=nil:  -{and field.owner.getfield('markRequired')}
-       aStyle = ChangeStyle(RequiredClassStyleValue?.RequiredOk, aStyle);
-     else
-       aStyle = ChangeStyle(RequiredClassStyleValue?.RequiredNo, aStyle);
-     fi;
-    fi;
-  end;
-
-inobject  public
--- IsPseudo :Logical;
-
-  var RequiredStyleValue :Storage := Storage.Create;
-
-inobject  private
-  func SetDefStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
-    var vSelf = aSelf as Com.Ctrl.IEdit;
-    Result =  Inherited SetDefStyle(vSelf, aStyle, aIndex);
-    if Result:
-       if vSelf.Required and vSelf.GetValue=nil:  -{and field.owner.getfield('markRequired')}
-         aStyle = ChangeStyle(RequiredStyleValue?.RequiredOk, aStyle);
-       else
-         aStyle = ChangeStyle(RequiredStyleValue?.RequiredNo, aStyle);
-       fi;
+    ---- дополнительные обработчики класса ----
+    if Result and (vSelf.Required or aSelf.ExtP?.Required) as Logical:
+       aStyle = ChangeStyle(NamedClassStyle?.Required, aStyle);
     fi;
   end;
 

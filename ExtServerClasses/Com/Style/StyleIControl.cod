@@ -14,13 +14,31 @@ inclass public
   #Help `’ранилище(регистраци€) методов дл€ изменени€ стил€
          Ёти методы вызываютс€ последовательно в JsonStyleStore`;
   var ClassOnChangeStyle :Storage := ClassOnChangeStyleIni;
+  #Help `ћетод инициализации - перекрываетс€ в наследниках дл€ возможности сли€ни€ со стил€ми предков класса`;
   func ClassOnChangeStyleIni :Storage;
     Result = CreateStorage(['SetDefClassStyle', @SetDefClassStyle]);
   end;
+
   #Help `јтрибуты стил€ примен€емые дл€ класса/наследников Com.Ctrl.IControl
          ѕримен€ютс€ к стилю в методе SetDefClassStyle
          ”словие вызова SetDefClassStyle - регистраци€ SetDefClassStyle в ClassOnChangeStyle`;
-  var DefClassStyleValue :Storage := Storage.Create; -- {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...}
+  var DefClassStyleValue :Storage := DefClassStyleValueIni; -- {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...}
+  #Help `ћетод инициализации - перекрываетс€ в наследниках дл€ возможности сли€ни€ со стил€ми предков класса
+         {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...}
+         `;
+  func DefClassStyleValueIni :Storage;
+    Result = Storage.Create;
+  end;
+
+  #Help ` оллекци€ именованных стилей`;
+  var NamedClassStyle :Storage := NamedClassStyleIni; -- {NameStyle1: {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...} }
+  #Help `ћетод инициализации - перекрываетс€ в наследниках дл€ возможности сли€ни€ со стил€ми предков класса
+         {NameStyle1: {AttrName1: {Value :"", ReWrite :true}, AttrName2: {Value :"", ReWrite :true},...} }
+         `;
+  func NamedClassStyleIni :Storage;
+    Result = Storage.Create;
+  end;
+
 
 #Help `
        ѕишем в ToStyle атрибуты стилей из aAddStyle
