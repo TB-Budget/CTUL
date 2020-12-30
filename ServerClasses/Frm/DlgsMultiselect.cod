@@ -51,7 +51,7 @@ func CreateTreeChooseFile(FileList :Variant[2];  aCellTextWidth :variant; MultiS
       CellTextWidth=aCellTextWidth;
     else -- если нет готовой функции расчета ширины клетки заполняем AnyCell - ссылку на клетку шаблона по которой сработает функция "по умолчанию"
       CellTextWidth = nil;
-      if aCellTextWidth is Com.Ctrl.IControlCell:
+      if aCellTextWidth is Com.Ctrl.IControlCell and not WebSide:
         AnyCell = aCellTextWidth.TplObject;
       else
         AnyCell = aCellTextWidth;

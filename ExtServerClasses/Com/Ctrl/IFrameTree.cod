@@ -207,6 +207,7 @@ inobject public
         TabStop = true;
         Tag = [position, NewColumn];
         if WebSide:
+          ExtP.AsStatic = true;
           --DefJsonStyle = [['background','transparent',true,true],['border','none',true,true]];
         fi;
 --  var DefJsonStyle1 :variant[2] :=
@@ -256,7 +257,7 @@ inobject public
               Visible = (GetStat = t);
             else
               img = ImageByStat(StatElem);
-              Visible = t = StatOpenGroup;
+              Visible = (t = StatOpenGroup); -- для элемента - всегда используем одну любую колонку(пусть это StatOpenGroup)
             fi;
           end;
           IStaticSetImage(vCtrl, img, fnt);
@@ -302,11 +303,11 @@ inobject public
     var OpenAll, NeedAddColumn :logical;
       NeedAddColumn = LengthOfArray(aColumns) > 0;
       if WebSide:
-        if LengthOfArray(aColumns) = 0:
-          aColumns = [-1]; -- только дерево без колонок
-        else
-          aColumns[LengthOfArray(aColumns)+1] = -1; -- замыкаем для обхода глюка в веб
-        fi;
+--        if LengthOfArray(aColumns) = 0:
+--          aColumns = [-1]; -- только дерево без колонок
+--        else
+--          aColumns[LengthOfArray(aColumns)+1] = -1; -- замыкаем для обхода глюка в веб
+--        fi;
       fi;
       if aTree <> nil:
         Tree = aTree;
@@ -370,7 +371,7 @@ inobject public
         while MoveNext do
           AddTreeGroup;
           j = if(TreeCanSelect,6,5); -- отступ + 3 варианта кнопки + имя группы + опционально select
-          if NeedAddColumn or (WebSide and aColumns[j+1] = -1):
+          if NeedAddColumn:-- or (WebSide and aColumns[j+1] = -1):
             for z = Name..Cols do
               vCtrl = nil;
               j = j + 1;

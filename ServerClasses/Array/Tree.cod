@@ -400,7 +400,7 @@ inobject public
     var m: numeric;
     p = position;
     reset;
-    if CellTextWidth = nil and AnyCell <> nil:
+    if CellTextWidth = nil and AnyCell <> nil and not WebSide:
       CellTextWidth = @GetCellTextWidth;
     fi;
     while MoveNext do
@@ -764,7 +764,7 @@ inobject public
   end;
 
   #Help `  Процедурное свойство - Нормализует(добавляет/рассчитывает) Groups, Owner, Childs, TreeMaxLevel, TreeMaxWidth`;
-  var NormalizeTree :Variant = nil set @_NormalizeTree;
+  var NormalizeTree :integer get @_GetNormalizeTree set @_SetNormalizeTree;
 
 
 --}}---------------  методы для заполнения дерева ----------------
@@ -1233,7 +1233,7 @@ inobject private
     end;
 
     #Help `  Нормализует(добавляет/рассчитывает) Groups, Owner, Childs, TreeMaxLevel, TreeMaxWidth`;
-    proc _NormalizeTree(aValue :Variant = nil); -- фиктивный aValue  - нужен т.к. это setter
+    proc _SetNormalizeTree(aValue :Integer); -- фиктивный aValue  - нужен т.к. это setter
       FItems = NormalizeGroups; -- меняем напрямую - т.к. количество колонок не меняется
       NormalizeOwnerAfterNormalizeGroups;
       NormalizeChilds;
@@ -1241,6 +1241,10 @@ inobject private
       TreeMaxWidth = GetTreeMaxWidth;
       --NormalizeVisible; -- отвечает за первичную прорисовку. Пока не прорисаван шаблон не применять
     end;
+    func _GetNormalizeTree :Integer; -- фиктивный - нужен т.к. это setter
+      _SetNormalizeTree(0);
+    end;
+
 
     #Help `  Заполняет items по данным из списка присвоенных строк
              Данные добаляются уже по структуре tree в конец массива items`;
