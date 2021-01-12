@@ -30,27 +30,28 @@ inclass public
   const Owner       :integer = 8; --:integer
   const Childs      :integer = 9; --:integer; -- количество элементов child к текущей включая вложенные
   const ChildsSel   :integer = 10; --:integer; -- количество элементов child к текущей включая вложенные
+  const Store       :integer = 11; --:storage; дополнительное хранилище
   --}---------  столбцы с доступом по текущей позиции через item[const] ----------------
 
   --{---------  столбцы с доступом по текущей позиции через свойство ----------------
-    const TreeIsSel   :integer = 11; -- свойство IsSel :logical
-    const TreeIsGroup :integer = 12; -- свойство IsGroup :logical
-    const TreeObjAll  :integer = 13; -- свойство ObjAll  :object[] массив из всех Ctrl.IStatic для этой line
+    const TreeIsSel   :integer = 12; -- свойство IsSel :logical
+    const TreeIsGroup :integer = 13; -- свойство IsGroup :logical
+    const TreeObjAll  :integer = 14; -- свойство ObjAll  :object[] массив из всех Ctrl.IStatic для этой line
 
     -----------  столбцы определяющие видимость групп и элементов ----------------
-    const TreeOpen    :integer = 14; -- свойство Open    :logical
-    const TreeVisible :integer = 15; -- свойство Visible :logical
+    const TreeOpen    :integer = 15; -- свойство Open    :logical
+    const TreeVisible :integer = 16; -- свойство Visible :logical
     ------------  столбцы определяющие внешний вид групп и элементов ----------------
-    const TreeImage       :integer = 16; --свойство Image :integer -  номер строки в ImageDef
-    const TreeFont        :integer = 17; --свойство Font  :variant[] то же что и item[TreeFont] as variant[]
-    const TreeFontGroup   :integer = 18; --свойство FontGroup :variant[] то же что и item[FontGroup] as variant[]
+    const TreeImage       :integer = 17; --свойство Image :integer -  номер строки в ImageDef
+    const TreeFont        :integer = 18; --свойство Font  :variant[] то же что и item[TreeFont] as variant[]
+    const TreeFontGroup   :integer = 19; --свойство FontGroup :variant[] то же что и item[FontGroup] as variant[]
   --}---------  столбцы с доступом по текущей позиции через свойство ----------------
 
   ------------------- константы номеров столбцов в массиве FItems ----------------------
   --------------------------------------------------------------------------------------
 
 
-  const TreeAdd         :integer = 19; -- номер столбца с которого хранятся дополнительные столбцы
+  const TreeAdd         :integer = 20; -- номер столбца с которого хранятся дополнительные столбцы
 
   const ImageDefFont          :integer = 1;
   const ImageDefSelect        :integer = 2;
@@ -1251,6 +1252,7 @@ inobject private
     proc _AddItemsBy(aValues :variant);
       var z :integer;
       var asVariant2 :Variant[2];
+      var Stores :Storage[];
       var StyleList :List;
       z = LengthOfArray(FItems);
       if aValues is Storage and aValues <> nil:
@@ -1266,6 +1268,11 @@ inobject private
             asVariant2 = asStorage.AddValues as Variant[2];
           fi;
         fi;
+        if asStorage.FieldExists('AddStores'):
+          if asStorage.AddStores is Storage[]:
+            Stores = asStorage.AddStores as Storage[];
+          fi;
+        fi;
         if asStorage.FieldExists('AddValuesStyles'):
           if asStorage.AddValuesStyles is List:
             StyleList = asStorage.AddValuesStyles as List;
@@ -1277,18 +1284,18 @@ inobject private
 
       if StyleList <> nil:
         for var i = 1..LengthOfArray(asVariant2) do
-          FItems[i+z] = ItemBy(asVariant2[i], if(StyleList[i] = nil, nil, StyleList[i] as storage) );
+          FItems[i+z] = ItemBy(asVariant2[i], if(StyleList[i] = nil, nil, StyleList[i] as storage), Stores[i] );
         od;
       else
         for var i = 1..LengthOfArray(asVariant2) do
-          FItems[i+z] = ItemBy(asVariant2[i]);
+          FItems[i+z] = ItemBy(asVariant2[i],, Stores[i]);
         od;
       fi;
     end;
 
   #Help `  Преобразует строковый массив [Code :string, Name_1 :string, Name_2 :string,...]
            в данные по соответствию структуре tree`;
-    func ItemBy(aValues :Variant[]; style :Storage = nil) :variant[];
+    func ItemBy(aValues :Variant[]; style :Storage = nil; aStore :variant = nil) :variant[];
       var tmpS, CurrentPath, CurrentElem :string;
       var CurrentIsGroup :logical;
       var CurrentLevel :integer;
@@ -1300,6 +1307,9 @@ inobject private
       result[Level  ] = CurrentLevel;
       result[TreeIsGroup] = CurrentIsGroup;
       result[Order  ] = tmpS;
+      if aStore <> nil:
+        result[Store  ] = aStore;
+      fi;
       if CurrentIsGroup:
         result[Code] = SubStr(tmpS,1,Length(tmpS)-1);
       else
