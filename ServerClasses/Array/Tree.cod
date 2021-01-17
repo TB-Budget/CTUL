@@ -124,6 +124,7 @@ inclass public
   const TreeFontColor         :integer = 3;
   const TreeFontBold          :integer = 4;
   const TreeFontItalic        :integer = 5;
+  const TreeFontHint          :integer = 6;
 
 
 

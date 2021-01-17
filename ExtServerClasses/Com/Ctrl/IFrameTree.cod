@@ -27,7 +27,28 @@ inobject public
 
   var FontSizeTree: integer := 8;
   var FontBoldTree: logical := true;
-
+  proc SetFont(aCell :IControlCell; vFont :Variant[]);
+    if LengthOfArray(vFont) > 0:
+      if vFont[tArrayTree.TreeFontName] <> nil:
+        aCell.FontName = vFont[tArrayTree.TreeFontName] as String;
+      fi;
+      if vFont[tArrayTree.TreeFontSize] <> nil:
+        aCell.FontSize = vFont[tArrayTree.TreeFontName] as Integer;
+      fi;
+      if vFont[tArrayTree.TreeFontColor] <> nil:
+        aCell.FontColor = vFont[tArrayTree.TreeFontColor] as Integer;
+      fi;
+      if vFont[tArrayTree.TreeFontBold] is Logical:
+        aCell.FontBold = vFont[tArrayTree.TreeFontBold] as Logical;
+      fi;
+      if vFont[tArrayTree.TreeFontItalic] is Logical:
+        aCell.FontItalic = vFont[tArrayTree.TreeFontItalic] as Logical;
+      fi;
+      if vFont[tArrayTree.TreeFontHint] <> nil:
+        aCell.Hint = vFont[tArrayTree.TreeFontHint] as String;
+      fi;
+    fi;
+  end;
 
 --inobject private
  -- var TreeFrame     :Ctrl.IFrame:=self;
@@ -216,7 +237,8 @@ inobject public
 --  ,['color',ColorToJSON(clBlack),true]
 --  ,['filter','invert(100)',true]
 --  ,['background',ColorToJSON(clDkGray),true]];
-
+      --element.style.cssText = 'color:green !important';
+      --border: 1px solid var(--black-main) !important;
         --background: transparent;
         if TreeCompact:
 --          FontSize = 4;
@@ -264,6 +286,8 @@ inobject public
         od;
 
       -- select + имя группы--
+      var vFont :Variant[] = Font;
+      var vGroupNameColumn :IStatic;
       if TreeCanSelect:
           with AddTreeColumnStatic('TreeName_5_'+Str(position), -TreeWidth(2),,@TreeSelectOnClick) do
             DrowSelect(position);
@@ -286,9 +310,13 @@ inobject public
               FontSize = 8;
             fi;
           end;
-        AddTreeColumnStatic('TreeName_6_'+Str(position), -TreeWidth(3),item[CodeName],if(IsGroup,@TreeNodeNameOnClick,DefTreeColumnOnClick)).StaticStyle = StaticHyperlink;
+        vGroupNameColumn = AddTreeColumnStatic('TreeName_6_'+Str(position), -TreeWidth(3),item[CodeName],if(IsGroup,@TreeNodeNameOnClick,DefTreeColumnOnClick));
+        vGroupNameColumn.StaticStyle = StaticHyperlink;
+        SetFont(vGroupNameColumn, vFont);
       else
-        AddTreeColumnStatic('TreeName_5_'+Str(position), -TreeWidth(3),item[CodeName],if(IsGroup,@TreeNodeNameOnClick,DefTreeColumnOnClick)).StaticStyle = StaticHyperlink;
+        vGroupNameColumn =  AddTreeColumnStatic('TreeName_5_'+Str(position), -TreeWidth(3),item[CodeName],if(IsGroup,@TreeNodeNameOnClick,DefTreeColumnOnClick));
+        vGroupNameColumn.StaticStyle = StaticHyperlink;
+        SetFont(vGroupNameColumn, vFont);
       fi;
     end;
   end;
