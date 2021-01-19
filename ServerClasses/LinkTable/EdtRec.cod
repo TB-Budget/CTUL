@@ -117,6 +117,13 @@ inobject public
      Result = AddCol( aLabel, aWidth, aType, aFieldName);
   end;
 
+  #Help `  Добавление в таблицу, отражающую записи, столбца с кнопкой "удалить запись".`;
+  func AddColRowDelete(aImgeName :String = "Biz.trash-alt") :IJumpButton;
+    Result = AddJumpButton( nil, , aImgeName);
+    Result.Hint = 'Удалить строку';
+    Result.OnClick = @DeleteLinkPos;
+  end;
+
 
 --  var ReversLinkFieldName: string;
 --  var ReversLinkSortingRule: string;
@@ -204,6 +211,11 @@ inobject private
     if Owner <> nil:
       Owner.AddUnloadedState(FID + jsonSeparator + 'table' + jsonSeparator); -- if aSetPos then  Owner.Refresh(True);  CurrentRow = aIndex; end;
     fi;
+  end;
+
+  proc DeleteLinkPos(aSender :Com.Ctrl.IControl; aIndex :Integer);
+    OnDeleteEdtRecLinks(Self, aIndex);
+    --DeletePos(aIndex);
   end;
 
 inobject public
