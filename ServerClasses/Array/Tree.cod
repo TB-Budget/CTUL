@@ -341,7 +341,7 @@ inobject public
   -- Kernel.Window.Select окно с галкой
   -- Kernel.Service.Messages восклицательный знак в треугольнике
   #Help `  ширина на символ значка выбора(select)`;
-  TreeWsel :numeric :=7; -- для совместимости с WebSide делаем 7
+  TreeWsel :numeric :=8; -- для совместимости с WebSide делаем 7
   #Help `  ширина отступа на 1 уровень`;
   TreeW0 :numeric :=4;
   #Help `  ширина на символ значка группы`;
