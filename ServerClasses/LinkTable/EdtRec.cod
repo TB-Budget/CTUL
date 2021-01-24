@@ -181,6 +181,9 @@ inobject private
 
   proc OnCloseEdtRecLinksEditor(aSender :Com.Frm.IForm; aModalResult :Integer);
     if (aModalResult = Com.Consts.cmOk):
+      if (Self.Owner is Com.Frm.IEditor) then
+        (Self.Owner as Com.Frm.IEditor).EdtRec.Post(false);
+      fi;
       UdateEdtRecLinkTable;
 -- !!!!!!!!!!! все происходит inobject  - значит фрейм таблицу искать не надо !!!!!
 --      if (FramesCount > 0) and (Frames[1].FrameType = Com.Consts.TableFrame): -- добавление связанной записи как добавлениие позиции в таблицу
