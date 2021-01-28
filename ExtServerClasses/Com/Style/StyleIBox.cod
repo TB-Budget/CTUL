@@ -1,0 +1,40 @@
+extends Com.Ctrl.IBox "";
+Import Com.Utils;-- Com.Consts, Com.Lib;
+
+--линки на расширения
+--Link:Com.Ctrl.IBox  -- Базовый класс
+inclass public
+
+  #Override;
+  func ClassOnChangeStyleIni :Storage;
+    Result = Inherited ClassOnChangeStyleIni;
+  end;
+
+  #Override;
+  func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
+    Result = Inherited NamedClassStyleIni;
+    var vAdd :Storage = Result.As3D;
+    if vAdd = nil:
+      vAdd = Storage.Create;
+      Result.As3D = vAdd;
+    fi;
+    vAdd['Background'] = CreateStorage(['Value','rgba(250, 250, 0, 0.03)', 'ReWrite',true]); -- фон на 3% темнее
+    vAdd['border-radius'] = CreateStorage(['Value','7px', 'ReWrite',true]);
+    vAdd['border-left'] = CreateStorage(['Value','1px solid rgba(0,0,0,0.2)', 'ReWrite',true]);
+    vAdd['overflow'] = CreateStorage(['Value','hidden', 'ReWrite',true]);
+    vAdd['margin'] = CreateStorage(['Value','4px 0px 0px 16px', 'ReWrite',true]);--отступ слева для каждого вложенного бокса
+    vAdd['border-bottom'] = CreateStorage(['Value','1px solid rgba(0,0,0,0.1)', 'ReWrite',true]);--отступ слева для каждого вложенного бокса
+  end;
+
+inclass private
+  #Override;
+  func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    var vSelf = aSelf as Com.Ctrl.IBox;
+    Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
+    ---- дополнительные обработчики класса ----
+    if Result:-- and aSelf.ExtP?.As3D as Logical:
+       aStyle = ChangeStyle(NamedClassStyle?.As3D, aStyle);
+    fi;
+  end;
+
+end
