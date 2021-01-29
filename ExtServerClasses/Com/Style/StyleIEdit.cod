@@ -14,12 +14,20 @@ inclass public
   #Override;
   func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
     Result = Inherited NamedClassStyleIni;
-    var vAdd :Storage = Result.Required;
-    if vAdd = nil:
-      vAdd = Storage.Create;
-      Result.Required = vAdd;
+    var vAdd :Storage;
+
+    if not Result.Required is Storage:
+      Result.Required = Storage.Create;
     fi;
+    vAdd = Result.Required as Storage;
     vAdd['borderBottom'] = CreateStorage(['Value','1px solid red', 'ReWrite',true]);
+
+    if not Result.AsUnderLine is Storage:
+      Result.AsUnderLine = Storage.Create;
+    fi;
+    vAdd = Result.AsUnderLine as Storage;
+    vAdd['border-width'] = CreateStorage(['Value','0px 0px 1px 0px', 'ReWrite',true]);
+--    vAdd['border'] = CreateStorage(['Value','0px 0px 1px 0px solid black', 'ReWrite',true]);
   end;
 
 inclass private
@@ -28,9 +36,15 @@ inclass private
     var vSelf = aSelf as Com.Ctrl.IEdit;
     Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
     ---- дополнительные обработчики класса ----
+
+    if Result and (true or aSelf.ExtP?.AsUnderLine) as Logical:
+       aStyle = ChangeStyle(NamedClassStyle?.AsUnderLine, aStyle);
+    fi;
+
     if Result and (vSelf.Required or aSelf.ExtP?.Required) as Logical:
        aStyle = ChangeStyle(NamedClassStyle?.Required, aStyle);
     fi;
+
   end;
 
 end

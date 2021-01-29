@@ -13,25 +13,48 @@ inclass public
   #Override;
   func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
     Result = Inherited NamedClassStyleIni;
-    var vAdd :Storage = Result.AsStatic;
-    if vAdd = nil:
-      vAdd = Storage.Create;
-      Result.AsStatic = vAdd;
+    var vAdd :Storage;
+
+    if not Result.AsStatic is Storage:
+      Result.AsStatic = Storage.Create;
     fi;
+    vAdd = Result.AsStatic as Storage;
     vAdd['border'] = CreateStorage(['Value','none', 'ReWrite',true]); -- border: 1px solid #c6d3e6; - серые края кнопки
     vAdd['padding'] = CreateStorage(['Value','0', 'ReWrite',true]);
     vAdd['border-radius'] = CreateStorage(['Value','0', 'ReWrite',true]); -- '50%' - круглая кнопка
+
+    if not Result.OnlyImage is Storage:
+      Result.OnlyImage = Storage.Create;
+    fi;
+    vAdd = Result.OnlyImage as Storage;
+    vAdd['display'] = CreateStorage(['Value','flex', 'ReWrite',true]);
+    vAdd['padding'] = CreateStorage(['Value','3px', 'ReWrite',true]);
+
+
+--    if not Result.icon_caption is Storage:
+--      Result.icon_caption = Storage.Create;
+--    fi;
+--    vAdd = Result.icon_caption as Storage;
+
+
   end;
 
 inclass private
   #Override;
   func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
-    var vSelf = aSelf as Com.Ctrl.IButton;
+    var vSelf :Com.Ctrl.IButton = aSelf as Com.Ctrl.IButton;
+
     Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
     ---- дополнительные обработчики класса ----
+
+    if Result and aSelf.ExtP?.OnlyImage as Logical or (vSelf.ImageName <> '' and not vSelf.OnList and (not vSelf.HasCaption or vSelf.Caption = '')):
+       aStyle = ChangeStyle(NamedClassStyle?.OnlyImage, aStyle);
+    fi;
+
     if Result and aSelf.ExtP?.AsStatic as Logical:
        aStyle = ChangeStyle(NamedClassStyle?.AsStatic, aStyle);
     fi;
+
   end;
 
 end
