@@ -19,16 +19,22 @@ inclass public
       Result.AsStatic = Storage.Create;
     fi;
     vAdd = Result.AsStatic as Storage;
-    vAdd['border'] = CreateStorage(['Value','none', 'ReWrite',true]); -- border: 1px solid #c6d3e6; - серые края кнопки
+    vAdd['border'] = CreateStorage(['Value','none', 'ReWrite',true]);
     vAdd['padding'] = CreateStorage(['Value','0', 'ReWrite',true]);
-    vAdd['border-radius'] = CreateStorage(['Value','0', 'ReWrite',true]); -- '50%' - круглая кнопка
+    vAdd['border-radius'] = CreateStorage(['Value','0', 'ReWrite',true]);
 
     if not Result.OnlyImage is Storage:
       Result.OnlyImage = Storage.Create;
     fi;
     vAdd = Result.OnlyImage as Storage;
-    vAdd['display'] = CreateStorage(['Value','flex', 'ReWrite',true]);
-    vAdd['padding'] = CreateStorage(['Value','3px', 'ReWrite',true]);
+    vAdd['display'] = CreateStorage(['Value','flex', 'ReWrite',true]); -- коррекция для 10424
+    vAdd['padding'] = CreateStorage(['Value','5px', 'ReWrite',true]); -- коррекция для 10424
+
+    if not Result.Caption is Storage:
+      Result.Caption = Storage.Create;
+    fi;
+    vAdd = Result.Caption as Storage;
+    vAdd['padding'] = CreateStorage(['Value','6px', 'ReWrite',true]);  -- коррекция для 10424
 
 
 --    if not Result.icon_caption is Storage:
@@ -49,6 +55,10 @@ inclass private
 
     if Result and aSelf.ExtP?.OnlyImage as Logical or (vSelf.ImageName <> '' and not vSelf.OnList and (not vSelf.HasCaption or vSelf.Caption = '')):
        aStyle = ChangeStyle(NamedClassStyle?.OnlyImage, aStyle);
+    fi;
+
+    if Result and aSelf.ExtP?.Caption as Logical or (not vSelf.OnList and (vSelf.HasCaption or vSelf.Caption <> '')):
+       aStyle = ChangeStyle(NamedClassStyle?.Caption, aStyle);
     fi;
 
     if Result and aSelf.ExtP?.AsStatic as Logical:
