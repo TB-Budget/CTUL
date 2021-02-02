@@ -1,0 +1,50 @@
+extends Com.Ctrl.IJumpButton "";
+Import Com.Utils;-- Com.Consts, Com.Lib;
+
+--линки на расширения
+--Link:Com.Ctrl.IJumpButton  -- Базовый класс
+inclass public
+
+  #Override;
+  func ClassOnChangeStyleIni :Storage;
+    Result = Inherited ClassOnChangeStyleIni;
+  end;
+
+  #Override;
+  func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
+    Result = Inherited NamedClassStyleIni;
+    var vAdd :Storage;
+
+    if not Result.OnlyImage is Storage:  --переопределяем padding для IJumpButton (кнопки мельче и padding уменьшаем)
+      Result.OnlyImage = Storage.Create;
+    fi;
+    vAdd = Result.OnlyImage as Storage;
+    vAdd['padding'] = CreateStorage(['Value','3px', 'ReWrite',true]); -- коррекция для 10424
+
+    if not Result.JumpButtonSvg is Storage: --нестандартная картинка, поэтому спец padding
+      Result.JumpButtonSvg = Storage.Create;
+    fi;
+    vAdd = Result.JumpButtonSvg as Storage;
+    vAdd['padding'] = CreateStorage(['Value','6px', 'ReWrite',true]); -- коррекция для 10424
+
+  end;
+
+inclass private
+  #Override;
+  func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    var vSelf :Com.Ctrl.IJumpButton = aSelf as Com.Ctrl.IJumpButton;
+
+    Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
+    ---- дополнительные обработчики класса ----
+
+    if Result and aSelf.ExtP?.OnlyImage as Logical or (vSelf.ImageName <> '' and not vSelf.OnList and (not vSelf.HasCaption or vSelf.Caption = '')):
+       aStyle = ChangeStyle(NamedClassStyle?.OnlyImage, aStyle);
+    fi;
+
+    if Result and aSelf.ExtP?.JumpButtonSvg as Logical or (match(vSelf.ImageName, '*JumpButton') and not vSelf.OnList and vSelf.Caption = ''):
+       aStyle = ChangeStyle(NamedClassStyle?.JumpButtonSvg, aStyle);
+    fi;
+
+  end;
+
+end

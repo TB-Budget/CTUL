@@ -53,11 +53,13 @@ inclass private
     Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
     ---- дополнительные обработчики класса ----
 
-    if Result and aSelf.ExtP?.OnlyImage as Logical or (vSelf.ImageName <> '' and not vSelf.OnList and (not vSelf.HasCaption or vSelf.Caption = '')):
+--    if Result and aSelf.ExtP?.OnlyImage as Logical or (vSelf.ImageName <> '' and not vSelf.OnList and (not vSelf.HasCaption or vSelf.Caption = '')):
+    if Result and aSelf.ExtP?.OnlyImage as Logical or (vSelf.ImageName <> '' and (not vSelf.OnList) and vSelf.Caption = ''):
        aStyle = ChangeStyle(NamedClassStyle?.OnlyImage, aStyle);
     fi;
 
-    if Result and aSelf.ExtP?.Caption as Logical or (not vSelf.OnList and (vSelf.HasCaption or vSelf.Caption <> '')):
+--    if Result and aSelf.ExtP?.Caption as Logical or (not vSelf.OnList and (vSelf.HasCaption or vSelf.Caption <> '')):
+    if Result and aSelf.ExtP?.Caption as Logical or ((not vSelf.OnList) and vSelf.Caption <> ''):
        aStyle = ChangeStyle(NamedClassStyle?.Caption, aStyle);
     fi;
 
