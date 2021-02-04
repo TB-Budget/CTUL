@@ -50,4 +50,6 @@ const WingDings3ArrowLeft           :string = '!'; -- стрелка прост�
 const WingDings3ArrowBackRight      :string = 'B'; -- стрелка с возвратом - вправо
 const WingDings3ArrowBackLeft       :string = 'C'; -- стрелка с возвратом - влево
 const WingDings3ArrowBlockLeftRight :string = 'F'; -- стрелки в обе стороны с блоком
+const WingDingsFolderOpen           :string = '1'; -- папка открытая
+const WingDingsFolder               :string = '0'; -- папка открытая
 end

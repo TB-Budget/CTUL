@@ -18,7 +18,7 @@ inclass public
       vAdd = Storage.Create;
       Result.As3D = vAdd;
     fi;
-    vAdd['Background'] = CreateStorage(['Value','rgba(250, 250, 0, 0.03)', 'ReWrite',true]); -- фон на 3% темнее
+    vAdd['Background'] = CreateStorage(['Value','rgba(250, 250, 0, 0.02)', 'ReWrite',true]); -- фон на 2% темнее
     vAdd['border-radius'] = CreateStorage(['Value','7px', 'ReWrite',true]);
     vAdd['border-left'] = CreateStorage(['Value','1px solid rgba(0,0,0,0.2)', 'ReWrite',true]);
     vAdd['overflow'] = CreateStorage(['Value','hidden', 'ReWrite',true]);
