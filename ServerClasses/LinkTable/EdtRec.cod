@@ -145,6 +145,7 @@ inobject public
           var vEditor = newIRecord.EditorClass.OpenRecord(newIRecord);
           vEditor.ReferrerForm = aSender.Owner;
           vEditor.OnClose = @OnCloseEdtRecLinksEditor;
+          vEditor.OnPost = @OnPostEdtRecLinksEditor;
           vEditor.Show(Com.Consts.StackedWindow);
         fi;
       fi;
@@ -185,13 +186,21 @@ inobject private
         (Self.Owner as Com.Frm.IEditor).EdtRec.Post(false);
       fi;
       UdateEdtRecLinkTable;
--- !!!!!!!!!!! все происходит inobject  - значит фрейм таблицу искать не надо !!!!!
---      if (FramesCount > 0) and (Frames[1].FrameType = Com.Consts.TableFrame): -- добавление связанной записи как добавлениие позиции в таблицу
---        Frames[1].UdateReversLinkTable;
---      elsif (FramesCount = 0) and (FrameType = Com.Consts.TableFrame): -- добавление связанной записи как jamp в пустой таблице
---        UdateReversLinkTable;
---      fi;
+      -- !!!!!!!!!!! все происходит inobject  - значит фрейм таблицу искать не надо !!!!!
+      --      if (FramesCount > 0) and (Frames[1].FrameType = Com.Consts.TableFrame): -- добавление связанной записи как добавлениие позиции в таблицу
+      --        Frames[1].UdateReversLinkTable;
+      --      elsif (FramesCount = 0) and (FrameType = Com.Consts.TableFrame): -- добавление связанной записи как jamp в пустой таблице
+      --        UdateReversLinkTable;
+      --      fi;
     fi;
+  end;
+
+  func OnPostEdtRecLinksEditor(aSender :Com.Frm.IEditor) :Logical;
+    if (Self.Owner is Com.Frm.IEditor) then
+      (Self.Owner as Com.Frm.IEditor).EdtRec.Post(false);
+    fi;
+    aSender.EdtRec.Post(false);
+    UdateEdtRecLinkTable;
   end;
 
   #Help ` Дефолтный метод для загрузки данных в массив таблицы`;
