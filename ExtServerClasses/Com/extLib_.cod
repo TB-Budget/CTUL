@@ -107,5 +107,35 @@ inclass public
     fi;
   end;
 
+  #Help `Содержимое полей из aVal :Storage копируется в vDoc :Com.Base.SysFields
+         Имена полей должны совпадать для aVal и vDoc
+         При ошибке результат = Storage {'ErrorCode' :ErrorCode, 'ErrorText' :ErrorText}
+         Если нет ошибки - вернет nil
+         `;
+  func DocSave(aDoc :Com.Base.SysFields; aVal :Storage) :Storage;
+    try
+      with aDoc do
+        if not State in [Edited, Created]:
+          Edit;
+        fi;
+        if State in [Edited, Created]:
+          var vField :String;
+          for var j = 1..aVal.Count do
+            vField = aVal.IndexByNumber[j];
+            if vField <> '':
+              SetField(vField, aVal[vField]);
+            fi;
+          od;
+          if Modified:
+            Post;
+          fi;
+        fi;
+      end;
+    except
+      Result = Storage.Create;
+      Result.ErrorCode = ErrorCode;
+      Result.ErrorText = ErrorText;
+    end;
+  end;
 
 end
