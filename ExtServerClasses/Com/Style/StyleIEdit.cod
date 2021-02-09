@@ -41,7 +41,8 @@ inclass private
        aStyle = ChangeStyle(NamedClassStyle?.AsUnderLine, aStyle);
     fi;
 
-    if Result and (vSelf.Required or aSelf.ExtP?.Required) as Logical:
+    --if Result and vSelf?.Field?.Value = nil and (vSelf.Required or aSelf.ExtP?.Required) as Logical: -- стандартное поведение (снимает подчеркивание)
+    if Result and (vSelf.Required or aSelf.ExtP?.Required) as Logical: -- не стандартное поведение (всегда подчеркнуто)
        aStyle = ChangeStyle(NamedClassStyle?.Required, aStyle);
     fi;
 
