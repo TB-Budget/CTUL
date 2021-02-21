@@ -41,7 +41,7 @@ inclass
 
 
 #Help `  создаем массив для работы дерева`;
-func CreateTreeChooseFile(FileList :Variant[2];  aCellTextWidth :variant; MultiSelect :logical = true) :tArrayTree;
+func CreateTreeChooseFile(FileList :Variant;  aCellTextWidth :variant; MultiSelect :logical = true) :tArrayTree;
 --aCellTextWidth :func(txt :string; aFont: variant[])
   result = tArrayTree.create;
   with result do
@@ -65,24 +65,59 @@ end;
 
 
 #Help
-`  Дерево выбора файлов`;
-func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :String = ''; Prompt :String = ''; Mask :String = '*.*'; aIndex :variant = nil; aCellTextWidth :variant = nil; MultiSelect :logical = true; aWindowStyles :WindowStyles = BlockedWindow; AttachmentDir: String = '') :tArrayTree;--string[];
+`  Дерево выбора файлов
+ FolderNameInAttachment = ['ProjectName1.FolderNameInAttachment1' ,'ProjectName2.FolderNameInAttachment2' ,...]
+`;
+func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :String[] = ['']; Prompt :String = ''; Mask :String = '*.*'; aIndex :variant = nil; aCellTextWidth :variant = nil; MultiSelect :logical = true; aWindowStyles :WindowStyles = BlockedWindow; AttachmentDir: String = '') :tArrayTree;--string[];
   if AttachmentDir = '':
     AttachmentDir = CTULAttachmentDir;
   fi;
   var FileList :variant[];
   var ln :integer;
   var OldFile :string;
-  FolderNameInAttachment = AttachmentDir + FolderNameInAttachment;
-  ln = length(FolderNameInAttachment);
-  FileList = GetFileList(FolderNameInAttachment, Mask, [FindOnlyFiles, RecursiveFind]);
-  for var j = 1..LengthOfArray(FileList) do
-    FileList[j] = System.Delete(FileList[j], 1, ln);
+  var TreeFolder :string;
+  var AddValuesStyles :List = List.Create;
+  var z :Integer;
+  for var j = 1..LengthOfArray(FolderNameInAttachment) do
+    var vProject, vDir :String;
+    var vFileList :String[]; -- файлы текущего проекта
+    vProject = ExtractWord(FolderNameInAttachment[j], 1, '.');
+    if WordsCount(FolderNameInAttachment[j], '.') > 1:
+      vDir = ExtractWord(FolderNameInAttachment[j], 2, '.');
+    else
+      vDir = 'Icons';
+    fi;
+--    TreeFolder[LengthOfArray(TreeFolder)+1] = "%Projects%\" + vProject + "\Attachment\"+vDir;
+    TreeFolder = "%Projects%\" + vProject + "\Attachment\"+vDir;
+    ln = length("%Projects%\" + vProject + "\Attachment\");
+    vFileList = GetFileList(TreeFolder, Mask, [FindOnlyFiles, RecursiveFind]);
+    for var k = 1..LengthOfArray(vFileList) do
+      z = z + 1;
+      FileList[z] = vProject+'\'+ System.Delete(vFileList[k], 1, ln);
+      var vStyle :Storage = Com.Utils.CreateStorage(['TreeImage',vFileList[k]]);
+      AddValuesStyles.Add(vStyle);
+    od;
   od;
+--  FolderNameInAttachment = AttachmentDir + FolderNameInAttachment;
+--  ln = length(FolderNameInAttachment);
+--  FileList = GetFileList(FolderNameInAttachment, Mask, [FindOnlyFiles, RecursiveFind]);
+--  for var j = 1..LengthOfArray(FileList) do
+--    FileList[j] = System.Delete(FileList[j], 1, ln);
+--  od;
+
   if VarType(aIndex)= varString:
     OldFile = System.Delete(aIndex,1,ln);
   fi;
-  Result = CreateTreeChooseFile(Array.Lib.TranspArrayDim1(FileList), aCellTextWidth, MultiSelect);
+  var FileListForAlternateTree :Storage = Storage.Create;
+  FileListForAlternateTree.AddValues = Array.Lib.TranspArrayDim1(FileList);
+  FileListForAlternateTree.AddValuesStyles = AddValuesStyles;
+--  for var z = 1..LengthOfArray(FileList) do
+--    var vStyle :Storage = Storage.Create;
+--    vStyle.TreeImage = FileList[z];
+--    AddValuesStyles.Add(vStyle);
+--  od;
+
+  Result = CreateTreeChooseFile(FileListForAlternateTree, aCellTextWidth, MultiSelect);
   AlternateTree(nil,Prompt,OldFile,,,Result,,aWindowStyles).OnFinish = OnFinish;
 end;
 
