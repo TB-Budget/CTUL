@@ -42,7 +42,7 @@ inclass public
     const TreeOpen    :integer = 15; -- свойство Open    :logical
     const TreeVisible :integer = 16; -- свойство Visible :logical
     ------------  столбцы определяющие внешний вид групп и элементов ----------------
-    const TreeImage       :integer = 17; --свойство Image :integer -  номер строки в ImageDef
+    const TreeImage       :integer = 17; --свойство Image :integer -  номер строки в ImageDef или имя файла с картинкой или image
     const TreeFont        :integer = 18; --свойство Font  :variant[] то же что и item[TreeFont] as variant[]
     const TreeFontGroup   :integer = 19; --свойство FontGroup :variant[] то же что и item[FontGroup] as variant[]
   --}---------  столбцы с доступом по текущей позиции через свойство ----------------
@@ -155,13 +155,13 @@ inobject public
   var Open          :logical get @GetOpen    set @SetOpen;
   var Visible       :logical get @GetVisible set @SetVisible;
 
-  var Image              :integer get @GetTreeImage            set @SetTreeImage ;
+  var Image              :Variant get @GetTreeImage            set @SetTreeImage ;
   var ImageFont          :string  get @GetImageFont            set @SetImageFont ;
   var ImageSelect        :string  get @GetImageSelect          set @SetImageSelect        ;
   var ImageCloseGroup    :string  get @GetImageCloseGroup      set @SetImageCloseGroup    ;
   var ImageCloseGroupNil :string  get @GetImageCloseGroupNil   set @SetImageCloseGroupNil ;
   var ImageOpenGroup     :string  get @GetImageOpenGroup       set @SetImageOpenGroup     ;
-  var ImageElem          :string  get @GetImageElem            set @SetImageElem          ;
+  var ImageElem          :Variant get @GetImageElem            set @SetImageElem          ;
   var ImageElemFont      :string  get @GetImageElemFont        set @SetImageElemFont      ;
   var ImageElemFontSize  :integer get @GetImageElemFontSize    set @SetImageElemFontSize  ;
   var ImageElemFontColor :integer get @GetImageElemFontColor   set @SetImageElemFontColor ;
@@ -1012,26 +1012,36 @@ inobject private
       Item[TreeIsSel] = Value;
     end;
 
-    func GetTreeImage :integer;
+    func GetTreeImage :Variant;
       result = item[TreeImage];
-      if result < 1:
+      if result = nil or (result is Integer and Integer(result) < 1):
         result = ImageDefCurrent;
       fi;
     end;
-    proc SetTreeImage(Value :integer);
+    proc SetTreeImage(Value :Variant);
       item[TreeImage] = Value;
     end;
 
 
     func GetImageFont :string;
-      return ImageDef[GetTreeImage, ImageDefFont];
+      var vGetTreeImage :Variant = GetTreeImage;
+      if vGetTreeImage is integer:
+        Result = ImageDef[vGetTreeImage as Integer, ImageDefFont];
+      else
+        Result = ImageDef[ImageDefCurrent, ImageDefFont];
+      fi;
     end;
     proc SetImageFont(Value :string);
       ImageDef[GetTreeImage, ImageDefFont] = Value;
     end;
 
     func GetImageSelect :string;
-      return ImageDef[GetTreeImage, ImageDefSelect];
+      var vGetTreeImage :Variant = GetTreeImage;
+      if vGetTreeImage is integer:
+        Result = ImageDef[vGetTreeImage as Integer, ImageDefSelect];
+      else
+        Result = ImageDef[ImageDefCurrent, ImageDefSelect];
+      fi;
     end;
     proc SetImageSelect(Value :string);
       ImageDef[GetTreeImage, ImageDefSelect] = Value;
@@ -1039,7 +1049,12 @@ inobject private
 
 
     func GetImageCloseGroup :string;
-      return ImageDef[GetTreeImage, ImageDefCloseGroup];
+      var vGetTreeImage :Variant = GetTreeImage;
+      if vGetTreeImage is integer:
+        Result = ImageDef[vGetTreeImage as Integer, ImageDefCloseGroup];
+      else
+        Result = ImageDef[ImageDefCurrent, ImageDefCloseGroup];
+      fi;
     end;
     proc SetImageCloseGroup(Value :string);
       #warning ' Казунин - меняем для всех а надо делать клона в ImageDef?';
@@ -1051,24 +1066,39 @@ inobject private
     end;
 
     func GetImageCloseGroupNil :string;
-      return ImageDef[GetTreeImage, ImageDefCloseGroupNil];
+      var vGetTreeImage :Variant = GetTreeImage;
+      if vGetTreeImage is integer:
+        Result = ImageDef[vGetTreeImage as Integer, ImageDefCloseGroupNil];
+      else
+        Result = ImageDef[ImageDefCurrent, ImageDefCloseGroupNil];
+      fi;
     end;
     proc SetImageCloseGroupNil(Value :string);
       ImageDef[GetTreeImage, ImageDefCloseGroupNil] = Value;
     end;
 
     func GetImageOpenGroup :string;
-      return ImageDef[GetTreeImage, ImageDefOpenGroup];
+      var vGetTreeImage :Variant = GetTreeImage;
+      if vGetTreeImage is integer:
+        Result = ImageDef[vGetTreeImage as Integer, ImageDefOpenGroup];
+      else
+        Result = ImageDef[ImageDefCurrent, ImageDefOpenGroup];
+      fi;
     end;
     proc SetImageOpenGroup(Value :string);
       ImageDef[GetTreeImage, ImageDefOpenGroup] = Value;
     end;
 
-    func GetImageElem :string;
-      return ImageDef[GetTreeImage, ImageDefElem];
+    func GetImageElem :Variant;
+      Result = GetTreeImage;
+      if Result is Integer:
+        Result = ImageDef[Result as Integer, ImageDefElem];
+      fi;
     end;
-    proc SetImageElem(Value :string);
-      ImageDef[GetTreeImage, ImageDefElem] = Value;
+    proc SetImageElem(Value :Variant);
+      if Value is Integer:
+        ImageDef[GetTreeImage, ImageDefElem] = Value;
+      fi;
     end;
 
     func GetImageElemFont :string;
