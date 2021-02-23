@@ -6,11 +6,6 @@ Import Com.Utils;-- Com.Consts, Com.Lib;
 inclass public
 
   #Override;
-  func ClassOnChangeStyleIni :Storage;
-    Result = Inherited ClassOnChangeStyleIni;
-  end;
-
-  #Override;
   func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
     Result = Inherited NamedClassStyleIni;
     var vAdd :Storage;
@@ -36,13 +31,6 @@ inclass public
     vAdd = Result.Caption as Storage;
     vAdd['padding'] = CreateStorage(['Value','6px', 'ReWrite',true]);  -- коррекция для 10424
 
-
---    if not Result.icon_caption is Storage:
---      Result.icon_caption = Storage.Create;
---    fi;
---    vAdd = Result.icon_caption as Storage;
-
-
   end;
 
 inclass private
@@ -53,14 +41,18 @@ inclass private
     Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
     ---- дополнительные обработчики класса ----
 
---    if Result and aSelf.ExtP?.OnlyImage as Logical or (vSelf.ImageName <> '' and not vSelf.OnList and (not vSelf.HasCaption or vSelf.Caption = '')):
     if Result and aSelf.ExtP?.OnlyImage as Logical or (vSelf.ImageName <> '' and (not vSelf.OnList) and vSelf.Caption = ''):
-       aStyle = ChangeStyle(NamedClassStyle?.OnlyImage, aStyle);
+       if aSelf.ExtP?.OnlyImage is Logical and not aSelf.ExtP?.OnlyImage as Logical:
+       else
+         aStyle = ChangeStyle(NamedClassStyle?.OnlyImage, aStyle);
+       fi;
     fi;
 
---    if Result and aSelf.ExtP?.Caption as Logical or (not vSelf.OnList and (vSelf.HasCaption or vSelf.Caption <> '')):
     if Result and aSelf.ExtP?.Caption as Logical or ((not vSelf.OnList) and vSelf.Caption <> ''):
-       aStyle = ChangeStyle(NamedClassStyle?.Caption, aStyle);
+       if aSelf.ExtP?.Caption is Logical and not aSelf.ExtP?.Caption as Logical:
+       else
+         aStyle = ChangeStyle(NamedClassStyle?.Caption, aStyle);
+       fi;
     fi;
 
     if Result and aSelf.ExtP?.AsStatic as Logical:

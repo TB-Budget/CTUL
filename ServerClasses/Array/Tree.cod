@@ -313,7 +313,7 @@ inobject public
 
   #Help ` Определяет картинку для текущей позиции(position) дерева
           это открытая или закрытая(пустая/непустая) папка или конечный элемент`;
-  func ImageByStat(aStat :integer = nil): string;
+  func ImageByStat(aStat :integer = nil): variant;
     if aStat = 0:
       aStat = GetStat;
     fi;
@@ -1057,11 +1057,6 @@ inobject private
       fi;
     end;
     proc SetImageCloseGroup(Value :string);
-      #warning ' Казунин - меняем для всех а надо делать клона в ImageDef?';
--- --делаем клон  - надо метод поиска для избежания дублей
---      ImageDef[LengthOfArray(ImageDef)+1] = ImageDef[aDef];
---      aDef = LengthOfArray(ImageDef);
---      items[FPosition, TreeImage] = aDef;
       ImageDef[GetTreeImage, ImageDefCloseGroup] = Value;
     end;
 

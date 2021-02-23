@@ -1,0 +1,72 @@
+extends Com.Ctrl.IFrame "";
+Import Com.Utils;-- Com.Consts, Com.Lib;
+
+--линки на расширения
+--Link:Com.Ctrl.IFrame  -- Базовый класс
+inclass public
+
+  #Override;
+  func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
+    Result = Inherited NamedClassStyleIni;
+    var vAdd :Storage = Result.PictureOwner;
+    if vAdd = nil:
+      vAdd = Storage.Create;
+      Result.PictureOwner = vAdd;
+    fi;
+   -- vAdd['width'] = CreateStorage(['Value',60, 'ReWrite',true]);
+  end;
+
+inclass private
+  #Override;
+  func SetDefClassStyle(aSelf :Com.Ctrl.IControl; var aStyle :Storage; aIndex :Integer = 1) :Logical;
+    var vSelf = aSelf as Com.Ctrl.IFrame;
+    Result =  Inherited SetDefClassStyle(vSelf, aStyle, aIndex);
+    ---- дополнительные обработчики класса ----
+    if Result and vSelf.ExtP?.PictureOwner as Logical:
+       aStyle = ChangeStyle(NamedClassStyle?.PictureOwner, aStyle);
+    fi;
+  end;
+
+
+inobject public
+  #Override;
+  func JsonStyleStore(aIndex :Integer = 1) :Storage; -- StyleParams
+    Result = extended JsonStyleStore(aIndex);
+    if ExtP?.PictureOwner as Logical:
+--      var s1,s2,s3 :String;
+--      s1 = Result.AsString;
+--      s2 = (NamedClassStyle?.PictureOwner as Storage).AsString;
+--
+      Result = ChangeStyle(NamedClassStyle?.PictureOwner as Storage, Result);
+--      s3 = Result.AsString;
+--      SetError(0,'old='+s1+' add='+s2+'new='+s3);
+    fi;
+
+--    old={ "textAlign": "left", "background": "#FFFFFF", "width": "fit-content", "size": 60 }
+--    add={ "width": { "Value": "fit-content", "ReWrite": true }
+--        , "size":  { "Value": "fit-content", "ReWrite": true }
+--        }
+--    new={ "textAlign": "left", "background": "#FFFFFF", "width": "fit-content", "size": "fit-content" }
+
+
+--      var vWidth = If(Size > 0, Size, Proportion);
+--      if vWidth > 0 then
+--        --Result.width = vWidth;
+--        Result.size  = vWidth;
+--      end;
+--    if WebMargins then
+--      if MarginsEx <> nil then
+--        Result.SetField('marginLeft',   MarginsEx[1]);
+--        Result.SetField('marginTop',    MarginsEx[2]);
+--        Result.SetField('marginRight',  MarginsEx[3]);
+--        Result.SetField('marginBottom', MarginsEx[4]);
+--      elsif Margins <> 0 then
+--        Result.SetField('marginLeft',   Margins);
+--        Result.SetField('marginTop',    Margins);
+--        Result.SetField('marginRight',  Margins);
+--        Result.SetField('marginBottom', Margins);
+--      end;
+--    end;
+  end;
+
+end

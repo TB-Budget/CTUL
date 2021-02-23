@@ -1,5 +1,5 @@
 extends Com.Ctrl.IControl;
-Import Com.Utils, Com.Lib;
+Import Com.Utils;--, Com.Lib;
 --Link:Sys.Consts   -- цвета
 --Link:Com.Consts
 --Link:Com.extConsts  -- типы Tpl и прочие типы
@@ -59,7 +59,7 @@ inclass public
        при AttrName.ReWrite = false и при наличии пол€ ToStyle.AttrName
        - ничего не пишем в ToStyle.AttrName
        `;
-  func ChangeStyle(aAddStyle :Storage; ToStyle :Storage) :Storage;
+  func ChangeStyle(aAddStyle :Storage; var ToStyle :Storage) :Storage;
     Result = ToStyle;
     if aAddStyle <> nil:
       for var j = 1..aAddStyle.Count do
@@ -70,9 +70,9 @@ inclass public
             if (not ToStyle.FieldExists(AttrName)) or vAttr.ReWrite as Logical:
               var val: Variant = vAttr.Value;
               if val is Date:
-                ToStyle[AttrName] = DateToJson(val);
+                ToStyle[AttrName] = Com.Lib.DateToJson(val);
               elsif val is Integer and AttrIsColor(AttrName):
-                ToStyle[AttrName] = ColorToJSON(val);
+                ToStyle[AttrName] = Com.Lib.ColorToJSON(val);
               else
                 ToStyle[AttrName] = val;
               fi;
@@ -86,6 +86,60 @@ inclass public
       od;
     fi;
   end;
+
+#Help `ѕереносим пол€ из NewAddStyle в ToAddStyle
+
+       структура NewAddStyle и ToAddStyle =
+       { AttrName1: {Value :"«начение атрибута", ReWrite :true}
+       , AttrName2: {ReWrite :true}
+       ,...
+       }
+
+       ѕри AttrName is Storage
+       - перезаписываем данные ToAddStyle.AttrName = NewAddStyle.AttrName
+
+       ѕри not(AttrName is Storage)
+       - удал€ем поле ToAddStyle.AttrName
+       `;
+  proc MergeAddStyle(NewAddStyle :Storage; var ToAddStyle :Storage);
+    if NewAddStyle?.Count > 0:
+      for var j = 1..NewAddStyle.Count do
+        var AttrName :String = NewAddStyle.IndexByNumber[j];
+        if AttrName <> '':
+          if NewAddStyle[AttrName] is Storage:
+            ToAddStyle[AttrName] = NewAddStyle[AttrName];
+          else -- все кроме Storage не подходит - включаем режим удалени€
+            if ToAddStyle.FieldExists(AttrName):
+              ToAddStyle.DeleteField(AttrName);
+            fi;
+          fi;
+        fi;
+      od;
+    fi;
+  end;
+
+#Help `ѕереносим пол€ из NewExtP в ToExtP
+         ѕри типе значении пол€ NewExtP = VarNull или VarUnknown
+         - удал€ем поле с этим именем в ToExtP
+       `;
+  proc MergeExtP(NewExtP :Storage; var ToExtP :Storage);
+    if NewExtP?.Count > 0:
+      for var j = 1..NewExtP.Count do
+        var AttrName :String = NewExtP.IndexByNumber[j];
+        if AttrName <> '':
+          if VarType (NewExtP[AttrName]) in [VarNull, VarUnknown]: -- включаем режим удалени€
+            if ToExtP.FieldExists(AttrName):
+              ToExtP.DeleteField(AttrName);
+            fi;
+          else
+            ToExtP[AttrName] = NewExtP[AttrName];
+          fi;
+        fi;
+      od;
+    fi;
+  end;
+
+
 
   func AttrIsColor(aAttrName :String) :Logical;
     if match(aAttrName, '*color*') or match(aAttrName, '*ground*'):
@@ -159,7 +213,7 @@ inobject public
         var funcSetStyle :tOnChangeStyle = ClassOnChangeStyle[vStyleName] as tOnChangeStyle;
         if ClosureOwner(funcSetStyle) = nil:
           ClassOnChangeStyle.DeleteField(vStyleName);
-        elsif not funcSetStyle(self, Result, aIndex): -- досрочный выход если метод мприменени€ стил€ - финальный
+        elsif not funcSetStyle(self, Result, aIndex): -- досрочный выход если метод применени€ стил€ - финальный
           Return Result;
         fi;
       fi;

@@ -78,6 +78,15 @@ func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :St
   var TreeFolder :string;
   var AddValuesStyles :List = List.Create;
   var z :Integer;
+  var vWebSyle :Storage = Storage.Create; -- отдельный стиль для элемента
+  vWebSyle.padding = Com.Utils.CreateStorage(['Value','2px', 'ReWrite',true]);
+  vWebSyle.border = Com.Utils.CreateStorage(['Value','none', 'ReWrite',true]);
+  vWebSyle['border-radius'] = Com.Utils.CreateStorage(['Value','0', 'ReWrite',true]);
+  vWebSyle.display = Com.Utils.CreateStorage(['Value','flex', 'ReWrite',true]);
+  var vWebExtP :Storage = Storage.Create; -- отдельные свойства стилей для элемента
+  vWebExtP.AsStatic = false; -- отключаем, т.к. перекрываем в vWebSyle
+  vWebExtP.OnlyImage = false; -- отключаем, т.к. перекрываем в vWebSyle
+
   for var j = 1..LengthOfArray(FolderNameInAttachment) do
     var vProject, vDir :String;
     var vFileList :String[]; -- файлы текущего проекта
@@ -87,36 +96,28 @@ func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :St
     else
       vDir = 'Icons';
     fi;
---    TreeFolder[LengthOfArray(TreeFolder)+1] = "%Projects%\" + vProject + "\Attachment\"+vDir;
     TreeFolder = "%Projects%\" + vProject + "\Attachment\"+vDir;
     ln = length("%Projects%\" + vProject + "\Attachment\");
     vFileList = GetFileList(TreeFolder, Mask, [FindOnlyFiles, RecursiveFind]);
     for var k = 1..LengthOfArray(vFileList) do
       z = z + 1;
       FileList[z] = vProject+'\'+ System.Delete(vFileList[k], 1, ln);
-      var vStyle :Storage = Com.Utils.CreateStorage(['TreeImage',vFileList[k]]);
+      var vStyle :Storage = Storage.Create;
+      if WebSide:
+        vStyle.TreeImage = Com.Utils.CreateStorage(['ImageName',vFileList[k], 'WebStyle',vWebSyle, 'ExtP',vWebExtP]);
+      else
+        vStyle.TreeImage = vFileList[k];
+      fi;
+--      var vStyle :Storage = Com.Utils.CreateStorage(['TreeImage',vFileList[k]]);
       AddValuesStyles.Add(vStyle);
     od;
   od;
---  FolderNameInAttachment = AttachmentDir + FolderNameInAttachment;
---  ln = length(FolderNameInAttachment);
---  FileList = GetFileList(FolderNameInAttachment, Mask, [FindOnlyFiles, RecursiveFind]);
---  for var j = 1..LengthOfArray(FileList) do
---    FileList[j] = System.Delete(FileList[j], 1, ln);
---  od;
-
   if VarType(aIndex)= varString:
     OldFile = System.Delete(aIndex,1,ln);
   fi;
   var FileListForAlternateTree :Storage = Storage.Create;
   FileListForAlternateTree.AddValues = Array.Lib.TranspArrayDim1(FileList);
   FileListForAlternateTree.AddValuesStyles = AddValuesStyles;
---  for var z = 1..LengthOfArray(FileList) do
---    var vStyle :Storage = Storage.Create;
---    vStyle.TreeImage = FileList[z];
---    AddValuesStyles.Add(vStyle);
---  od;
-
   Result = CreateTreeChooseFile(FileListForAlternateTree, aCellTextWidth, MultiSelect);
   AlternateTree(nil,Prompt,OldFile,,,Result,,aWindowStyles).OnFinish = OnFinish;
 end;
@@ -150,7 +151,6 @@ inobject private
 
   var TreeFrame   :Ctrl.IFrame;
   var TreeFrameExt:Ctrl.IFrame;
-  var TreeFrameExt1:Ctrl.IFrame;
   ButtonAllSel    :Ctrl.IButton;
   #Help `  дополнительный обработчик кнопки выбора всех позиций`;
   proc DoButtonAllSel;
@@ -173,18 +173,8 @@ inobject private
 --      trace('TplObject.font.Size='+str(cl.TplObject.font.Size));
 --      trace('TplObject.font.name='+str(cl.TplObject.font.name));
 --    end;
-
---    with TreeFrameExt1 do
---      AddNewLine;
---      with AddStatic(,'Microsoft Windows [Version 10.0.18363.836]') do FontColor = clLime; FontSize = 6; Alignment = LeftAlign; end;
---        ReShow;
---    end;
-
---    if not webside: ButtonInventSel.TplObject.Image.Color = clLogEditSelected;  fi;
   end;
 
---  Pict     :Com.Fld.IBlob;
---  Picture1 :IPicture;
   proc Init;
     inherited Init;
 
@@ -217,39 +207,6 @@ inobject private
 --      MinHeight = 5;-- высота секции не менее
 --      --MinSize = 15; -- минимальная ширина при Orientation = Vertical для предка, меньше - схлопывается
     end;
-    if 1=0:
-
---    TreeFrame.Orientation = Horizontal;
-    TreeFrameExt1 = TreeFrameExt.AddNewFrame( "TreeFrameExt1" );
-    with TreeFrameExt1 do
---      AutoSize = False; -- тут авторазмер не подойдет
---      if WebSide:
---        Size = 400;
---      fi;
---      Pict = Com.Fld.IBlob.Create;
---      Pict.CompID  = 'Pict';
---      AddComp(Pict);
---      Picture1 = AddControl( IPicture.Create );
---      Picture1.Field = Pict;
---      Picture1.Stretch = True; -- масштабирование (подгоняем картинку под размер фрейма)
---      Picture1.Center  = True; -- центрирование
---      Pict.LoadFromFile( BudgBizIconsDir+'change.SVG' );
-
---      Margins = 5;
---      MarginsEx   = [35,5,15,50];
---      WebMargins = true;
-      Color = 0; -- clLogDialog  clLogDialogPage COLOR_DIALOGBACK
-      Proportion = 1;
-      AutoSize = false;
-      SetColumns([-140]);
-      AddNewLine;
-      with AddStatic(,'Microsoft Windows [Version 10.0.18363.836]') do FontColor = clLime; FontSize = 6; Alignment = LeftAlign; end;
-      AddNewLine;
-      with AddStatic(,'(c) Корпорация Майкрософт (Microsoft Corporation), 2019. Все права защищены.') do FontColor = clLime;  FontSize = 6;  Alignment = LeftAlign; end;
-      AddNewLine;
-      with AddStatic(,'C:\ХХХ>format c: _') do FontColor = clLime;  FontSize = 8;  Alignment = LeftAlign; end;
-    end;
-    fi;
   end;
 
   cmdAllSel    :String = "@Cmd:AllSel=Выбрать все";
@@ -294,9 +251,7 @@ inobject private
 ----        SetVisible(False);
 ----      fi;
     end;
---  proc TreeNormalizeVisible;
---    TreeFrame.Tree.NormalizeVisible;
---  end;
+
   proc ShowAlternateTree
     (const List :Variant[2]
     ;aCaption :String
@@ -368,18 +323,6 @@ inobject private
     --EndModify;
 
     --TreeFrame.Tree.NormalizeVisible; - перенес выполнение NormalizeVisible в BeforeShow_ProcAfter
-
--- тестирование дублей форм
---    if not WebSide:
---       var uo :UserObject = (self as variant).FForm as UserObject;
---       var z = uo.ObjectsCount;
---       trace('==================================');
---       for var j = 1..z do
---         trace(uo.Objects[j]);
---         trace(uo.Objects[j].ClassName);
---       od;
---    fi;
-
   end;
 end
 --if Orientation = WithTabs then      FrameObject.OnSwitch = 'Frame_OnSwitch';    end;

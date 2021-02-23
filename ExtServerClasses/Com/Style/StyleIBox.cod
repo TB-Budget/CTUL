@@ -6,11 +6,6 @@ Import Com.Utils;-- Com.Consts, Com.Lib;
 inclass public
 
   #Override;
-  func ClassOnChangeStyleIni :Storage;
-    Result = Inherited ClassOnChangeStyleIni;
-  end;
-
-  #Override;
   func NamedClassStyleIni :Storage; -- добавление стилей с учетом наследования
     Result = Inherited NamedClassStyleIni;
     var vAdd :Storage = Result.As3D;
