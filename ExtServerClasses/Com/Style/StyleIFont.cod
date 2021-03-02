@@ -1,0 +1,4 @@
+extends Com.Ctrl.IFont;
+inobject public
+  var AddStyle :Storage; -- для реализации в IControllCell.OnColumnDraw и IControllCell.OnDraw возможности менять web style
+end

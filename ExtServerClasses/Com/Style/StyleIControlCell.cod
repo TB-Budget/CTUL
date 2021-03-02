@@ -1,5 +1,5 @@
 extends Com.Ctrl.IControlCell "";
-Import Com.Utils;--, Com.Consts, Com.Lib;
+Import Com.Utils, Com.Consts, Com.Lib;
 
 --линки на расширени€
 --Link:Com.Ctrl.IControlCell  -- Ѕазовый класс
@@ -24,5 +24,84 @@ inclass private
        aStyle = ChangeStyle(NamedClassStyle?.NotPadding, aStyle);
     fi;
   end;
+
+inobject public
+  -- полностью перекрыт JsonStyleStore - дл€ реализации проброса данных стил€ через Com.Ctrl.IFont
+  -- теперь в OnColumnDraw и OnDraw можно через IFont.AddStyle мен€ть web style
+  #Override;
+  func JsonStyleStore(aIndex :Integer = 1) :Storage; -- StyleParams
+    Result = inherited JsonStyleStore(aIndex);
+    if MinWidth <> 0 then
+      Result.Items['minWidth'] = MinWidth;
+    end;
+    if MaxWidth <> 0 then
+      Result.Items['maxWidth'] = MaxWidth;
+    end;
+    if FieldColor <> clNoColor then
+      Result.backgroundColor = ColorToJSON(FieldColor);
+    end;
+    if OnDraw <> nil or OnColumnDraw <> nil then
+      var vColor      = Color;
+      var vFieldColor = FieldColor;
+      var vFont       = Com.Ctrl.IFont.Create;
+      vFont.Name   = FontName;
+      vFont.Size   = FontSize;
+      vFont.Bold   = FontBold;
+      vFont.Italic = FontItalic;
+      vFont.Color  = FontColor;
+      if OnDraw <> nil then
+        OnDraw(Self, aIndex, nil, vColor, vFieldColor, vFont); -- aSelected - на сервере пока не реализовано
+      elsif OnColumnDraw <> nil then
+        OnColumnDraw(Self, Com.Frm.ICardForm(Owner).Current, nil, vFieldColor, vFont);
+      end;
+      if FontName <> vFont.Name then
+        if vFont.Name = '' then
+          Result.DeleteField('fontFamily');
+        else
+          Result.fontFamily = vFont.Name;
+        end;
+      end;
+      if FontSize <> vFont.Size then
+        if vFont.Size = 0 then
+          Result.DeleteField('fontSize');
+        else
+          Result.fontSize = Str(vFont.Size + 4) + 'px';
+        end;
+      end;
+      if FontBold <> vFont.Bold then
+        if not vFont.Bold then
+          Result.DeleteField('fontWeight');
+        else
+          Result.fontWeight = 'bold';
+        end;
+      end;
+      if FontItalic <> vFont.Italic then
+        if not vFont.Italic then
+          Result.DeleteField('fontStyle');
+        else
+          Result.fontStyle = 'italic';
+        end;
+      end;
+      if FontColor <> vFont.Color then
+        if vFont.Color = clNoColor then
+          Result.DeleteField('color');
+        else
+          Result.color = ColorToJSON(vFont.Color);
+        end;
+      end;
+      if FieldColor <> vFieldColor then
+        if vFieldColor = clNoColor then
+          Result.DeleteField('backgroundColor');
+        else
+          Result.backgroundColor = ColorToJSON(vFieldColor);
+        end;
+      end;
+      #Warning 'Ќужен посто€нный контроль Com.Ctrl.IControlCell.JsonStyleStore на изменени€ т.к. метод полностью перекрыт';
+      if vFont.AddStyle <> nil: -- добавлен проброс AddStyle :Storage через расширение  Com.Ctrl.IFont (в IFont добавлен AddStyle)
+        Result = ChangeStyle(vFont.AddStyle, Result);
+      fi;
+    end;
+  end;
+
 
 end
