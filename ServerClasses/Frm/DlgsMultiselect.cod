@@ -88,29 +88,31 @@ func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :St
   vWebExtP.OnlyImage = false; -- отключаем, т.к. перекрываем в vWebSyle
 
   for var j = 1..LengthOfArray(FolderNameInAttachment) do
-    var vProject, vDir :String;
-    var vFileList :String[]; -- файлы текущего проекта
-    vProject = ExtractWord(FolderNameInAttachment[j], 1, '.');
-    if WordsCount(FolderNameInAttachment[j], '.') > 1:
-      vDir = ExtractWord(FolderNameInAttachment[j], 2, '.');
-    else
-      vDir = 'Icons';
-    fi;
-    TreeFolder = "%Projects%\" + vProject + "\Attachment\"+vDir;
-    ln = length("%Projects%\" + vProject + "\Attachment\");
-    vFileList = GetFileList(TreeFolder, Mask, [FindOnlyFiles, RecursiveFind]);
-    for var k = 1..LengthOfArray(vFileList) do
-      z = z + 1;
-      FileList[z] = vProject+'\'+ System.Delete(vFileList[k], 1, ln);
-      var vStyle :Storage = Storage.Create;
-      if WebSide:
-        vStyle.TreeImage = Com.Utils.CreateStorage(['ImageName',vFileList[k], 'WebStyle',vWebSyle, 'ExtP',vWebExtP]);
+    if BaseInfo.ProjectByName[FolderNameInAttachment[j]] <> nil:
+      var vProject, vDir :String;
+      var vFileList :String[]; -- файлы текущего проекта
+      vProject = ExtractWord(FolderNameInAttachment[j], 1, '.');
+      if WordsCount(FolderNameInAttachment[j], '.') > 1:
+        vDir = ExtractWord(FolderNameInAttachment[j], 2, '.');
       else
-        vStyle.TreeImage = vFileList[k];
+        vDir = 'Icons';
       fi;
---      var vStyle :Storage = Com.Utils.CreateStorage(['TreeImage',vFileList[k]]);
-      AddValuesStyles.Add(vStyle);
-    od;
+      TreeFolder = "%Projects%\" + vProject + "\Attachment\"+vDir;
+      ln = length("%Projects%\" + vProject + "\Attachment\");
+      vFileList = GetFileList(TreeFolder, Mask, [FindOnlyFiles, RecursiveFind]);
+      for var k = 1..LengthOfArray(vFileList) do
+        z = z + 1;
+        FileList[z] = vProject+'\'+ System.Delete(vFileList[k], 1, ln);
+        var vStyle :Storage = Storage.Create;
+        if WebSide:
+          vStyle.TreeImage = Com.Utils.CreateStorage(['ImageName',vFileList[k], 'WebStyle',vWebSyle, 'ExtP',vWebExtP]);
+        else
+          vStyle.TreeImage = vFileList[k];
+        fi;
+  --      var vStyle :Storage = Com.Utils.CreateStorage(['TreeImage',vFileList[k]]);
+        AddValuesStyles.Add(vStyle);
+      od;
+    fi;
   od;
   if VarType(aIndex)= varString:
     OldFile = System.Delete(aIndex,1,ln);
