@@ -22,6 +22,13 @@ inclass public
     vAdd = Result.JumpButtonSvg as Storage;
     vAdd['padding'] = CreateStorage(['Value','6px', 'ReWrite',true]); -- коррекция для 10424
 
+    if not Result.Style10433 is Storage: --нестандартная картинка, поэтому спец padding
+      Result.Style10433 = Storage.Create;
+    fi;
+    vAdd = Result.Style10433 as Storage;
+    vAdd['width'] = CreateStorage(['Value','100%', 'ReWrite',true]); -- коррекция для 10433
+    vAdd['height'] = CreateStorage(['Value','auto', 'ReWrite',true]); -- коррекция для 10433
+
   end;
 
 inclass private
@@ -39,6 +46,9 @@ inclass private
     if Result and aSelf.ExtP?.JumpButtonSvg as Logical or (match(vSelf.ImageName, '*JumpButton') and not vSelf.OnList and vSelf.Caption = ''):
        aStyle = ChangeStyle(NamedClassStyle?.JumpButtonSvg, aStyle);
     fi;
+
+       --aStyle = ChangeStyle(NamedClassStyle?.Style10433, aStyle);
+
 
   end;
 
