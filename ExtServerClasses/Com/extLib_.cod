@@ -115,10 +115,10 @@ inclass public
   func DocSave(aDoc :Com.Base.SysFields; aVal :Storage) :Storage;
     try
       with aDoc do
-        if not State in [Edited, Created]:
+        if not State in [Edited, Created, Duplicated]:
           Edit;
         fi;
-        if State in [Edited, Created]:
+        if State in [Edited, Created, Duplicated]:
           var vField :String;
           for var j = 1..aVal.Count do
             vField = aVal.IndexByNumber[j];
@@ -128,6 +128,8 @@ inclass public
           od;
           if Modified:
             Post;
+          else
+            Cancel;
           fi;
         fi;
       end;
