@@ -112,7 +112,7 @@ inclass public
          При ошибке результат = Storage {'ErrorCode' :ErrorCode, 'ErrorText' :ErrorText}
          Если нет ошибки - вернет nil
          `;
-  func DocSave(aDoc :Com.Base.SysFields; aVal :Storage) :Storage;
+  func DocSave(aDoc :Com.Base.SysFields; aVal :Storage; aFixEdit :Logical = true) :Storage;
     try
       with aDoc do
         if not State in [Edited, Created, Duplicated]:
@@ -126,10 +126,12 @@ inclass public
               SetField(vField, aVal[vField]);
             fi;
           od;
-          if Modified:
-            Post;
-          else
-            Cancel;
+          if aFixEdit: -- нужен выход из режима Edit
+            if Modified:
+              Post;
+            else
+              Cancel;
+            fi;
           fi;
         fi;
       end;
