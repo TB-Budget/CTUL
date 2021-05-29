@@ -7,8 +7,8 @@ inclass public
 
   #Help `Преобразование aValue :Variant к Array.Dim2
          При aValue = nil вернет новый Array.Dim2`;
-  func TValue(aValue :Variant = Array.Dim2.Create) :Array.Dim2;
-    Result = aValue as Array.Dim2;
+  func TValue(aValue :Variant = CTUL.Array.Dim2.Create) :CTUL.Array.Dim2;
+    Result = aValue as CTUL.Array.Dim2;
   end;
   #Help `Приводит aObject к типу LinkTable.IArraySync или создает новый LinkTable.IArraySync, если aObject = nil`;
   func TSelf(aObject :Object = Create) :LinkTable.IArraySync;

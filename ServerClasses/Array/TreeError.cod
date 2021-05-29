@@ -1,11 +1,11 @@
-﻿class inherited Array.Tree "Дерево ошибок" synonym ДеревоОшибок;
+﻿class inherited CTUL.Array.Tree "Дерево ошибок" synonym ДеревоОшибок;
 import classes Array.Lib;
 --import Sconsole;
 import Sys.Consts;
 
 inclass public
 --{{ inclass public
-  type tArrayTreeError = Array.TreeError;
+  type tArrayTreeError = CTUL.Array.TreeError;
   func Create: tArrayTreeError;
     result = inherited Create;
     result.ls = chr(1);

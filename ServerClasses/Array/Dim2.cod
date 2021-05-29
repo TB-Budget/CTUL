@@ -4,7 +4,7 @@ import classes Array.Lib;
 inclass public
 --{{ inclass public
 
-  type tArrayDim2 = Array.Dim2;
+  type tArrayDim2 = CTUL.Array.Dim2;
 
   func Create: tArrayDim2;
     result = inherited Create;

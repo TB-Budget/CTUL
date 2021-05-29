@@ -19,7 +19,7 @@ inobject
 
   #help `  Массив как объект (обертка над массивом :variant[2])
            к этому массиву применяется фильтр-выражение`;
-  var FilterArray :Array.Dim2;
+  var FilterArray :CTUL.Array.Dim2;
 
   #help `  номер столбца из FilterArray.items :variant[2], по которому будет работать фильтр`;
   var FilterColumn :integer;
@@ -27,7 +27,7 @@ inobject
   #help `  Копирует Source в массив для фильтрации-FilterArray`;
   proc SetFilterArray(Source :variant[2]);
     if FilterArray = nil:
-      FilterArray = Array.Dim2.create;
+      FilterArray = CTUL.Array.Dim2.create;
     fi;
     FilterArray.Source = Source;
   end;

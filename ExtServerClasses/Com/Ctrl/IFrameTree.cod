@@ -7,7 +7,7 @@ import Com classes Consts, Utils, Def;
 --import Sconsole;
 
 inclass public
-  type tArrayTree = Array.Tree;
+  type tArrayTree = CTUL.Array.Tree;
 
 
 inclass private

@@ -118,7 +118,7 @@ func ChooseFileAttachment(OnFinish :proc(a :integer); FolderNameInAttachment :St
     OldFile = System.Delete(aIndex,1,ln);
   fi;
   var FileListForAlternateTree :Storage = Storage.Create;
-  FileListForAlternateTree.AddValues = Array.Lib.TranspArrayDim1(FileList);
+  FileListForAlternateTree.AddValues = CTUL.Array.Lib.TranspArrayDim1(FileList);
   FileListForAlternateTree.AddValuesStyles = AddValuesStyles;
   Result = CreateTreeChooseFile(FileListForAlternateTree, aCellTextWidth, MultiSelect);
   AlternateTree(nil,Prompt,OldFile,,,Result,,aWindowStyles).OnFinish = OnFinish;

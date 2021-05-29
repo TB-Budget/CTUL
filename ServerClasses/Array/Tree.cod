@@ -1,10 +1,10 @@
-﻿class inherited Array.Dim2 "Аналог grid" synonym Дерево;
+﻿class inherited CTUL.Array.Dim2 "Аналог grid" synonym Дерево;
 import classes Array.Lib;
 --import Sconsole;
 
 inclass public
 --{{ inclass public
-  type tArrayTree = Array.Tree;
+  type tArrayTree = CTUL.Array.Tree;
   func Create: tArrayTree;
     result = inherited Create as tArrayTree;
   end;
