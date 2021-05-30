@@ -1,0 +1,104 @@
+
+class "Базовый класс для работы с шаблоном RTF"; --  replacement in the template RTF
+-- Пример выгрузки в файл без повторяющихся секций
+-- with CTUL.ToRtf.BaseRtf.New(['Имя Банка','Расчетный счет']) do
+--   Tpl = 'Содержимое шаблона файла rtf';
+--   TplReplaceFrom = ['{##Банк.Name#}','{##Банк.AccountNum#}'];
+--   ToRtfFile('c:\temp\File.rtf');
+-- od;
+
+
+--import SConsole; -- для использование trace и message в режиме студии для серверных классов
+inclass
+  type tArrayV = Variant[];
+  type FuncS2S = func(s :string):string;
+
+
+
+  func CreateEx synonym new (aTplReplaceTo :Variant[] = nil) :ToRtf.BaseRtf;
+    result = Create;
+    result.TplReplaceTo = aTplReplaceTo;
+  end;
+
+  func CreateByRecord (aRec :Record) :ToRtf.BaseRtf;
+    result = CreateEx(TplReplaceToFromRecord(aRec));
+    result.Internal = aRec;
+  end;
+
+  #help `Получаем из aRec массив данных для подстановок
+         Перекрывается в наследниках`;
+  func TplReplaceToFromRecord(aRec :Record) :Variant[];
+  end;
+
+  #help `Получаем итоговое содержимое файла rtf`;
+  func TplToRtf(aTplReplaceTo :Variant; aTpl :String = Tpl; aTplReplaceFrom :String[] = TplReplaceFrom) :String;
+    if aTplReplaceTo is String[]:
+      Result = ReplaceStrings(aTpl, aTplReplaceFrom, aTplReplaceTo as String[], True, False);
+    else
+      var vTplReplaceTo :String[];
+      for var j = 1..LengthOfArray(tArrayV(aTplReplaceTo)) do
+        if tArrayV(aTplReplaceTo)[j] is FuncS2S:
+          vTplReplaceTo[j] = FuncS2S(tArrayV(aTplReplaceTo)[j])(aTplReplaceFrom[j]);
+        else
+          vTplReplaceTo[j] = tArrayV(aTplReplaceTo)[j] as String;
+        fi;
+      od;
+      Result = ReplaceStrings(aTpl, aTplReplaceFrom, vTplReplaceTo, True, False);
+    fi;
+  end;
+
+  func TplToRtf64(aTplReplaceTo :Variant[]; aTpl :String = Tpl; aTplReplaceFrom :String[] = TplReplaceFrom; Encoding :Variant = '1251') :String;
+    Result = StringToBinaryObject(TplToRtf(aTplReplaceTo, aTpl, aTplReplaceFrom), Encoding).AsBase64;
+  end;
+
+
+  #help `шаблон - содержимое файла rtf
+         с закодированным списком замен
+         Перекрывается в наследниках`;
+  var Tpl :string;
+
+  #help `список замен для Tpl - перекрывается в наследниках
+         (куски текста, которые будем менять на реальные данные)`;
+  var TplReplaceFrom :String[];
+
+  func StringToBinaryObject(aFrom :String; Encoding :Variant = TextFile.UTF8) :BinaryObject;
+    Result = BinaryObject.Create;
+    if Encoding is String and Encoding as String = '1251' :
+      Result.SetString(aFrom, 1251); --??? непонятно почему, но нормально не работает Encoding как Variant ???
+    else
+      Result.SetString(aFrom, Encoding);
+    fi;
+  end;
+
+  func String64ToBinaryObject(aFrom :String) :BinaryObject;
+    Result = BinaryObject.Create;
+    Result.AsBase64 = aFrom;
+  end;
+
+
+inobject public
+
+
+  #help `список реальных данных для замен в шаблоне Tpl
+         (на что будем менять по списку TplReplaceFrom)`;
+  var TplReplaceTo :Variant[];
+
+  #help `Получаем итоговое содержимое файла rtf`;
+  func ToRtf :String;
+    Result = TplToRtf(TplReplaceTo);
+  end;
+
+  func ToRtf64(Encoding :Variant = '1251') :String;
+    Result = TplToRtf64(TplReplaceTo,,,Encoding);
+  end;
+
+  proc ToRtfFile(aFile :String; Encoding :Variant = '1251');
+    StringToBinaryObject(ToRtf, Encoding).SaveToFile(aFile);
+  end;
+
+------------- привязка к записи ------------
+  var Internal :Record;
+
+inobject private
+
+end
