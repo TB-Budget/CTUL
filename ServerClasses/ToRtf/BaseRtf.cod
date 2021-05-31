@@ -76,6 +76,115 @@ inclass
   end;
 
 
+  Func GetPar(ш,в,лп,пп,вп,нп :Integer) :String;
+    Result = '\paperw'+str(56.7*ш,0)+'\paperh'+str(56.7*в,0)+'\margl'+str(56.7*лп,0)+'\margr'+str(56.7*пп,0)+'\margt'+str(56.7*вп,0)+'\margb'+str(56.7*нп,0);
+  end;
+
+  Func GetParA3(landscape:Logical; лп,пп,вп,нп :Integer) :String;
+    if landscape: Result = GetPar(420,297,лп,пп,вп,нп)+'\landscape';
+    else Result = GetPar(297,420,лп,пп,вп,нп);
+    fi;
+  end;
+
+  Func GetParA4(landscape:Logical; лп,пп,вп,нп :Integer) :String;
+    if landscape: Result = GetPar(297,210,лп,пп,вп,нп)+'\landscape';
+    else Result = GetPar(210,297,лп,пп,вп,нп);
+    fi;
+  end;
+
+  Func GetParA4M(landscape:Logical; лп,пп,вп,нп :Integer; масштаб :Numeric) :String;
+    -- минимальный масштаб=53.2258%,т.к. максимальная ширина листа=558мм
+    -- при уменьшении масштаба происходит пропорциональное увеличение размеров листа
+    var k :Numeric;
+    масштаб = max([53.2258, масштаб]);
+    k = 100/масштаб;
+    if landscape: Result = GetPar(int(297*k),int(210*k),int(лп*k),int(пп*k),int(вп*k),int(нп*k))+'\landscape';
+    else Result = GetPar(int(210*k),int(297*k),int(лп*k),int(пп*k),int(вп*k),int(нп*k));
+    fi;
+  end;
+
+  Func GetParBytwip(twip,лп,пп,вп,нп :Integer) :String;
+    var w,mm :Integer;
+    w = лп+пп;
+    mm = int(trunc(twip/56.7));
+    if 210-w >= mm: Result = GetParA4(false,лп,пп,вп,нп);
+    elsif 297-w >= mm: Result = GetParA4(true,лп,пп,вп,нп);
+    else Result = GetPar(mm+w,210,лп,пп,вп,нп);
+    fi;
+  end;
+  --^jpeg2rtfScaleCrop(nfile_rtf,file_jpeg,100,100,0,0,0,0,'',0);
+  func jpeg2rtfScaleCrop(file_jpeg:String; scaleW:Numeric = 100; scaleH:Numeric = 100; cropT:Integer = 0; cropB:Integer = 0; cropL:Integer = 0; cropR:Integer = 0; brdr:String = ''; Align:Integer = 0 ):String;-- вставляет в файл rtf с номером nfile_rtf в текущую позицию картинку из файла file_jpeg
+  --2scaleW0<0 => abs(scaleW) как ширина
+  --2scaleW0>0 => abs(scaleW) как % к ширине (от 1% до 100% )
+  --2scaleH0<0 => abs(scaleH) как высота
+  --2scaleH0>0 => abs(scaleH) как % к высоте (от 1% до 100% )
+  --2brdr0=
+  --'s'   : определяет простую рамку для рисунка
+  --'db'  : определяет двойную рамку для рисунка.
+  --'th'  : определяет жирную линию для рамки рисунка.
+  --'sh'  : определяет затененную рамку для рисунка
+  --'dot' : определяет для рисунка пунктирную линию.
+  --'hair': определяет тонкую линию для рамки рисунка.
+--  var jpg,FileData:AutoObject;
+  var jpg :image;
+  var Width, Height: Integer;
+  var w, h:Numeric;
+  var frmt:String;
+   if not existfile(file_jpeg): return; fi;
+   jpg = Image.Create;--jpg=AutoObject.Create("WIA.ImageFile");
+--field Handle :Pointer
+--field Format :String
+   Try
+    jpg.LoadFromFile(file_jpeg);-- jpg.LoadFile(file_jpeg);
+    Width  = jpg.Width;
+    Height = jpg.Height;
+  --  HRes   = AsInteger(jpg.HorizontalResolution);
+  --  VRes   = AsInteger(jpg.VerticalResolution);
+  --  PDepth = AsInteger(jpg.PixelDepth);
+    W = Width;
+    H = Height;
+    if match(file_jpeg,'*.emf'):
+       frmt='{\pict\emfblip\picw%d\pich%d\picwgoal%d\pichgoal%d';
+    else
+       frmt='{\pict\jpegblip\picw%d\pich%d\picwgoal%d\pichgoal%d';
+    fi;
+    if scaleW<0: W=-scaleW; scaleW=100; fi;
+    if scaleH<0: H=-scaleH; scaleH=100; fi;
+    Result = Sys.Strings.Format(frmt, [Width, Height, int(56.7*W), int(56.7*H), int(scaleW), int(scaleH)]);
+    if scaleW<>100:
+       frmt=frmt+'\picscalex'+str(scaleW);
+    fi;
+    if scaleH<>100:
+       frmt=frmt+'\picscaley'+str(scaleH);
+    fi;
+    Result = Sys.Strings.Format(frmt, [int(56.7*cropT) ,int(56.7*cropB) ,int(56.7*cropL) ,int(56.7*cropR)]);
+
+    if cropT+cropB+cropL+cropR>0:
+       frmt=frmt+'\piccropt%d\piccropb%d\piccropl%d\piccropr%d';
+       Result = Result + Sys.Strings.Format(frmt, [int(56.7*cropT) ,int(56.7*cropB) ,int(56.7*cropL) ,int(56.7*cropR)]);
+    fi;
+    if brdr<>'':
+       Result = Result + '\brdr'+brdr;
+    fi;
+--    frmt=frmt+' ';
+--    Result = Sys.Strings.Format(frmt, [Width, Height, int(56.7*W), int(56.7*H), int(scaleW), int(scaleH) ,int(56.7*cropT) ,int(56.7*cropB) ,int(56.7*cropL) ,int(56.7*cropR)]);
+    Result = Result +' '+ jpg.AsHex;--  res=ExecuteFuncL('Раб.WSH.File2FileHex',file_jpeg,'',nfile_rtf);
+  --  FileData = AsAutoObject(jpg.FileData); --Vector
+  --  count=AsInteger(FileData.count);
+  --  for j=1..count do
+  --   v=AsInteger(FileData.item[j]);
+  --   TextFileAppendLn(nfile_rtf, str16(v,2));
+  --  od;
+    if Align=0: Result = Result + '}\ql\par';
+    elsif Align=1: Result = Result + '}\qr\par';
+    else Result = Result + '}\qc\par';
+    fi;
+   except
+    raise;
+   end;
+  end;
+
+
 inobject public
 
 
