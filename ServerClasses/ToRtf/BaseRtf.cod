@@ -184,6 +184,38 @@ inclass
    end;
   end;
 
+  --func EncodeHex(aTxt :String) :String;-- не работает!!!
+  --  Return ReplaceStrings(UrlEncode(aTxt, True),['%'],["\'"], True, False); -- преобразует 'ј“Ѕ' в '%C0%D2%C1' а затем "%" на "\'"
+  --end;
+  func EncodeUnicode(aTxt :String) :String;
+    aTxt = Encode(aTxt);
+    var vOrd :Integer;
+    for var j = 1..Length(aTxt) do
+      vOrd = Ord(aTxt[j]);
+      if vOrd < 128:
+        Result = Result + aTxt[j];
+      else
+        Result = Result + '\u'+str(vOrd,'####')+'?';
+      fi;
+    od;
+  end;
+
+  func Encode(aTxt :String) :String; -- маскируем только управл€ющие символы
+    aTxt = ReplaceStrings(aTxt, ['\'], ['\\'], False, False);
+    Return ReplaceStrings(aTxt, ['{','}'], ['\{','\}'], False, False);
+  end;
+
+
+  func AsCellText(aTxt :String; asUnicode :Logical = false) :String;
+    if aTxt = nil:
+      Result = '{}';
+    else
+      Result = '{'+EncodeUnicode(aTxt)+'}';
+      --Result = '{'+EncodeHex(aTxt)+'}';
+      --Result = '{'+Encode(aTxt)+'}';
+    fi;
+  end;
+
 
 inobject public
 
