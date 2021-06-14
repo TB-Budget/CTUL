@@ -114,27 +114,33 @@ inclass public
          `;
   func DocSave(aDoc :Com.Base.SysFields; aVal :Storage; aFixEdit :Logical = true) :Storage;
     try
-      with aDoc do
-        if not State in [Edited, Created, Duplicated]:
-          Edit;
-        fi;
-        if State in [Edited, Created, Duplicated]:
-          var vField :String;
-          for var j = 1..aVal.Count do
-            vField = aVal.IndexByNumber[j];
-            if vField <> '':
-              SetField(vField, aVal[vField]);
-            fi;
-          od;
-          if aFixEdit: -- нужен выход из режима Edit
-            if Modified:
-              Post;
-            else
-              Cancel;
+      if Com.Lib.TryEdit(aDoc,true):-- if Sys.Recs.RecordTryEdit(aDoc):
+        with aDoc do
+          if not State in [Edited, Created, Duplicated]:
+            Edit;
+          fi;
+          if State in [Edited, Created, Duplicated]:
+            var vField :String;
+            for var j = 1..aVal.Count do
+              vField = aVal.IndexByNumber[j];
+              if vField <> '':
+                SetField(vField, aVal[vField]);
+              fi;
+            od;
+            if aFixEdit: -- нужен выход из режима Edit
+              if Modified:
+                Post;
+              else
+                Cancel;
+              fi;
             fi;
           fi;
-        fi;
-      end;
+        end;
+      else
+        Result = Storage.Create;
+        Result.ErrorCode = 0;
+        Result.ErrorText = 'Error. Запись '+aDoc.RecordDescription+' заблокирована';
+      fi;
     except
       Result = Storage.Create;
       Result.ErrorCode = ErrorCode;
