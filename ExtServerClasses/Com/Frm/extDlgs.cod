@@ -24,6 +24,11 @@ inclass public
     Result.ShowAlternate2(List, aCaption, aIndex, aColumns, aWrap);
   end;
 
+  func AlternateBtnResultDown2(const List :String[2]; aCaption :String = ''; aIndex :Integer = 1; aColumns :Numeric[] = nil; aWrap :logical = true) :Frm.Dlgs; -- из 2х столбцов
+    Result = Create;
+    Result.ShowAlternateBtnResultDown2(List, aCaption, aIndex, aColumns, aWrap);
+  end;
+
 #Help
 ` Alternate с двумя и более колонками и с соотношением ширин колонок
 
@@ -128,6 +133,55 @@ inobject private
     ActiveControl = Comp.Items['Line_1_'+Str(aIndex)];
     ShowModal;
   end;
+
+  proc ShowAlternateBtnResultDown2(const List :String[2]; aCaption :String; aIndex :Integer; aColumns :Numeric[] = nil; aWrap :logical = true);
+    var vCtrl :Ctrl.IStatic;
+    var Cols  :integer;
+    SetCaption( Voc.Txt(aCaption) );
+    with RootFrame do
+      Margins = 8;
+      Cols = LengthOfArray(List[1]);
+      if LengthOfArray(aColumns) = 0:
+        aColumns = [1,3];
+      fi;
+      --Freezed = true; - не работает в Com.Frm.Dlgs!!!!
+      for var i = 1..LengthOfArray(List) do
+        AddComp(INewLine.CreateEx(True)); -- переход на новую строку
+        for var j = 1..Cols do
+          vCtrl = IStatic.CreateEx('Line_'+Str(j)+'_'+Str(i), aColumns[j], Voc.Txt(List[i,j]));
+          with vCtrl do
+            CanSelect = true;
+            TabStop = true;
+            Tag = i;
+            HasCaption = true;
+            Caption = List[i,j];
+            Wrap = aWrap;
+            OnClick =
+              proc(aSender :Ctrl.IControl; aIndex :Integer)
+                SetVisible(False);
+                if OnFinish <> nil and ClosureOwner(OnFinish) <> nil:
+                  OnFinish(aSender.Tag as Integer);
+                end;
+              end;
+          end;
+          AddComp(vCtrl);
+        od;
+      od;
+      AddComp(INewLine.CreateEx(True) );
+      AddComp(IStatic.CreateEx(, 10, '') );
+      AddComp(IButton.CreateEx(, -25, cmNames[cmOk],
+        proc(aSender :Ctrl.IControl; aIndex :Integer)
+          SetVisible(False);
+          if OnFinish <> nil and ClosureOwner(OnFinish) <> nil and ActiveControl is Ctrl.IStatic:
+            OnFinish(ActiveControl.Tag);
+          fi;
+        end));
+      AddComp(IButton.CreateEx(, -25, cmNames[cmCancel], @CancelClick));
+    end;
+    ActiveControl = Comp.Items['Line_1_'+Str(aIndex)];
+    ShowModal;
+  end;
+
 
 
   var TreeFrame     :Ctrl.IFrame;
